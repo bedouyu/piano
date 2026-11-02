@@ -30,3 +30,14 @@
 #practice.focus #keyboard-window{flex:0 0 auto;height:150px}
 #practice.focus .focus-toggle{background:rgba(35,48,24,.82);color:#fff;border-color:transparent}
 @media(orientation:landscape){#practice.focus #keyboard-window{height:96px}}
+.editor-nav{display:flex;align-items:center;gap:6px}
+.editor-step{min-width:34px;min-height:34px;border:1px solid var(--line);border-radius:9px;background:var(--white);color:var(--ink);font-size:16px;line-height:1}
+.editor-step:disabled{opacity:.35}
+.editor-staff{width:100%;height:auto;display:block;background:var(--white);border:1px solid var(--line);border-radius:14px;margin:4px 0 10px}
+.editor-note{cursor:pointer}
+.note-editor{display:flex;flex-direction:column;gap:8px;padding:10px 12px;margin-bottom:8px;border:1px solid var(--line);border-radius:14px;background:#f3f6ea}
+.note-editor strong{font-size:13px}
+.note-editor-actions{display:flex;flex-wrap:wrap;gap:6px}
+.note-action{min-height:36px;padding:0 10px;border:1px solid #dce2d1;border-radius:9px;background:var(--white);color:var(--ink);font-size:12px}
+.note-action.danger{color:#a33333;border-color:#f0cfcf}
+.editor-tip{margin:0 0 8px;font-size:11px;color:#829174}

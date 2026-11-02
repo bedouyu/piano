@@ -14,7 +14,6 @@ function showScreen(name){if(name!=='practice'&&['playing','paused'].includes(st
 function openSheet(id){document.querySelectorAll('.sheet').forEach(n=>n.classList.add('hidden'));$(id).classList.remove('hidden');$('modal-backdrop').classList.remove('hidden');}
 function closeSheet(){document.querySelectorAll('.sheet').forEach(n=>n.classList.add('hidden'));$('modal-backdrop').classList.add('hidden');}
 function pitchName(midi){return ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'][midi%12]+(Math.floor(midi/12)-1);}
-function parsePitch(name){const s=name.trim().replace(/♯/g,'#').replace(/♭/g,'b');const match=/^([A-Ga-g])([#b]{0,2})(-?\d)$/.exec(s);if(!match)throw Error('音名格式不正确：'+name+'。例如 C4、D♭4、F#4');let midi=({C:0,D:2,E:4,F:5,G:7,A:9,B:11}[match[1].toUpperCase()])+(+match[3]+1)*12;for(const c of match[2])midi+=c==='#'?1:-1;if(midi<21||midi>108)throw Error('音符需在 A0—C8 之间：'+name);return {midi,name:match[1].toUpperCase()+match[2].replace(/#/g,'♯').replace(/b/g,'♭')+match[3]};}
 
 function renderLibrary(){
   const container=$('library-list');container.replaceChildren();
@@ -111,55 +110,66 @@ window.addEventListener('blur',()=>[...pressed.keys()].forEach(releaseKey));
 $('keyboard-range').addEventListener('input',e=>{startWhite=+e.target.value;positionKeyboard();});
 $('keyboard-zoom').addEventListener('input',e=>setKeyWidth(e.target.value));
 $('playback-tempo').addEventListener('change',()=>{if(['playing','paused'].includes(state.playback.state))post('playback',playbackParams('tempo'));});
-function startEditor(){state.draft=state.score?JSON.parse(JSON.stringify(state.score)):{title:state.current.title||'我的乐谱',composer:'',fifths:0,beats:4,beatType:4,measures:[{number:1,beats:4,beatType:4,duration:4,events:[]}]};state.editorMeasure=0;$('edit-title').value=state.draft.title;renderEditor();}
-function collectEditor(skipRow){
-  if(!state.draft)return;
-  const measure=state.draft.measures[state.editorMeasure],rows=[...document.querySelectorAll('.editor-row')],grouped=new Map();
-  for(const row of rows){
-    const ei=+row.dataset.event,staff=+row.querySelector('select').value,input=row.querySelector('input').value.trim();
-    if(!grouped.has(ei))grouped.set(ei,[]);
-    if(row===skipRow||!input)continue;
-    const sourceNotes=JSON.parse(row.dataset.sourceNotes||'[]'),used=new Set();
-    for(const text of input.split(/[\s,，+]+/).filter(Boolean)){
-      const note=parsePitch(text.replace(/𝄫/g,'bb').replace(/𝄪/g,'##'));
-      const sourceIndex=sourceNotes.findIndex((source,index)=>!used.has(index)&&source.midi===note.midi&&source.staff===+row.dataset.sourceStaff);
-      if(sourceIndex>=0){
-        used.add(sourceIndex);
-        grouped.get(ei).push({...sourceNotes[sourceIndex],...note,staff});
-      }else{
-        grouped.get(ei).push({...note,staff,tiedContinuation:false,duration:measure.events[ei]?.grace?0:1});
-      }
-    }
-  }
-  for(const [ei,notes]of grouped)if(measure.events[ei])measure.events[ei].notes=notes;
-  state.draft.title=$('edit-title').value.trim()||'我的乐谱';
-}
+function startEditor(){state.draft=state.score?JSON.parse(JSON.stringify(state.score)):{title:state.current.title||'我的乐谱',composer:'',fifths:0,beats:4,beatType:4,measures:[{number:1,beats:4,beatType:4,duration:4,events:[]}]};state.editorMeasure=0;state.editorNote=null;$('edit-title').value=state.draft.title;renderEditor();}
+function collectEditor(){if(!state.draft)return;state.draft.title=$('edit-title').value.trim()||'我的乐谱';}
 function renderEditor(){
   const container=$('measure-editor');container.replaceChildren();if(!state.draft)return;
-  const measure=state.draft.measures[state.editorMeasure],title=element('div','editor-title'),label=element('strong','','小节音符');
-  label.style.fontSize='12px';const select=element('select');
+  const measure=state.draft.measures[state.editorMeasure],title=element('div','editor-title');
+  title.append(element('strong','','小节音符'));
+  const nav=element('div','editor-nav');
+  const previous=element('button','editor-step','‹');previous.dataset.action='editorStep';previous.dataset.delta=-1;previous.setAttribute('aria-label','上一小节');previous.disabled=state.editorMeasure<=0;
+  const select=element('select');
   for(let i=0;i<state.draft.measures.length;i++){const option=element('option','',`第 ${state.draft.measures[i].number} 小节`);option.value=i;select.append(option);}
   select.value=state.editorMeasure;
-  select.addEventListener('change',()=>{try{collectEditor();state.editorMeasure=+select.value;renderEditor();}catch(error){toast(error.message);select.value=state.editorMeasure;}});
-  title.append(label,select);container.append(title);
-  for(let ei=0;ei<measure.events.length;ei++){
-    const event=measure.events[ei],staffs=[...new Set(event.notes.map(n=>n.staff))];if(!staffs.length)staffs.push(1);
-    container.append(element('p','editor-onset',`位置 ${Number(event.onset+1).toFixed(2).replace(/\.00$/,'')} · ${event.notes.some(n=>n.tiedContinuation)?'含延音连结后续音':'按顺序练习'}`));
-    for(const staff of staffs){
-      const notes=event.notes.filter(n=>n.staff===staff),row=element('div','editor-row');
-      row.dataset.event=ei;row.dataset.sourceStaff=staff;row.dataset.sourceNotes=JSON.stringify(notes);
-      const input=element('input');input.value=notes.map(n=>n.name).join(' ');input.placeholder='C4 E4 G4';input.setAttribute('aria-label','音符音名');input.autocapitalize='characters';
-      const hand=element('select');
-      for(const [value,text]of [[1,'上谱表'],[2,'下谱表']]){const opt=element('option','',text);opt.value=value;hand.append(opt);}
-      hand.value=staff<=1?1:2;hand.setAttribute('aria-label','音符谱表');
-      const remove=element('button');remove.setAttribute('aria-label','删除这组音符');remove.append(icon('close'));
-      remove.addEventListener('click',()=>{try{collectEditor(row);renderEditor();}catch(error){toast(error.message);}});
-      row.append(input,hand,remove);container.append(row);
+  select.addEventListener('change',()=>{state.editorMeasure=+select.value;state.editorNote=null;renderEditor();});
+  const next=element('button','editor-step','›');next.dataset.action='editorStep';next.dataset.delta=1;next.setAttribute('aria-label','下一小节');next.disabled=state.editorMeasure>=state.draft.measures.length-1;
+  nav.append(previous,select,next);title.append(nav);container.append(title);
+  container.append(drawEditorStaff(measure));
+  const selected=state.editorNote,event=selected?measure.events[selected.ei]:null,note=event?event.notes[selected.ni]:null;
+  if(note){
+    const panel=element('div','note-editor');panel.append(element('strong','',`${note.name} · ${note.staff<=1?'上谱表':'下谱表'}`));
+    const group=element('div','note-editor-actions'),action=(text,kind,danger)=>{const button=element('button','note-action'+(danger?' danger':''),text);button.dataset.action='editNoteValue';button.dataset.kind=kind;return button;};
+    group.append(action('♭ 半音','flat'),action('♯ 半音','sharp'),action('低八度','octaveDown'),action('高八度','octaveUp'),action('换谱表','staff'),action('删除','delete',true));
+    panel.append(group);container.append(panel);
+  }else container.append(element('p','editor-tip','点一下谱面上的音符，就能改音高、换谱表或删除。'));
+  const add=element('button','editor-add','＋ 添加下一个音符 / 和弦');
+  add.addEventListener('click',()=>{const onset=measure.events.length?Math.max(...measure.events.map(e=>e.onset))+1:0;measure.events.push({onset,duration:1,notes:[{midi:60,staff:1,name:'C4',duration:1,tiedContinuation:false}]});measure.duration=Math.max(measure.duration||4,onset+1);state.editorNote={ei:measure.events.length-1,ni:0};renderEditor();});
+  container.append(add);
+}
+function drawEditorStaff(measure){
+  const hasLower=measure.events.some(event=>event.notes.some(note=>note.staff>1)),staves=hasLower?[1,2]:[1],height=staves.length===2?198:143;
+  const svg=svgNode('svg',{viewBox:`0 0 340 ${height}`,class:'editor-staff',role:'img','aria-label':`第${measure.number}小节音符`});
+  const maxOnset=Math.max(1,measure.duration||0,...measure.events.map(event=>event.onset+Math.min(event.duration||1,1))),eventX=onset=>64+(onset/maxOnset)*249;
+  for(const staff of staves){
+    const bottom=staves.length===1?95:staff===1?75:160,items=[];
+    measure.events.forEach((event,ei)=>event.notes.forEach((note,ni)=>{if((note.staff<=1?1:2)===staff)items.push({note,ei,ni,onset:event.onset,duration:event.duration});}));
+    const mean=items.reduce((sum,item)=>sum+item.note.midi,0)/Math.max(1,items.length),clef=staves.length===1?(mean<57?'bass':'treble'):(staff===1?(mean<48?'bass':'treble'):(mean>76?'treble':'bass'));
+    for(let i=0;i<5;i++)svg.append(svgNode('line',{x1:8,y1:bottom-i*9,x2:330,y2:bottom-i*9,stroke:'#d2d7c9','stroke-width':.9}));
+    svg.append(svgNode('text',{x:15,y:clef==='treble'?bottom-2:bottom-24,'font-size':clef==='treble'?48:34,'font-family':'Bravura,serif',fill:'#475642'},clef==='treble'?'\uE050':'\uE062'));
+    svg.append(svgNode('line',{x1:330,y1:bottom-36,x2:330,y2:bottom,stroke:'#9ca88d','stroke-width':1}));
+    for(const item of items){
+      const x=eventX(item.onset),pos=notePosition(item.note,clef),y=bottom-pos.offset*4.5,selected=state.editorNote&&state.editorNote.ei===item.ei&&state.editorNote.ni===item.ni;
+      if(selected)svg.append(svgNode('rect',{x:x-14,y:y-15,width:28,height:30,rx:9,fill:'#fff0ab'}));
+      for(let off=-2;off>=pos.offset;off-=2)svg.append(svgNode('line',{x1:x-9,y1:bottom-off*4.5,x2:x+10,y2:bottom-off*4.5,stroke:'#87957a','stroke-width':1}));
+      for(let off=10;off<=pos.offset;off+=2)svg.append(svgNode('line',{x1:x-9,y1:bottom-off*4.5,x2:x+10,y2:bottom-off*4.5,stroke:'#87957a','stroke-width':1}));
+      if(pos.accidental)svg.append(svgNode('text',{x:x-18,y:y+4,'font-size':16,fill:selected?'#8e6410':'#87957a'},pos.accidental));
+      svg.append(svgNode('ellipse',{'data-action':'pickNote','data-event':item.ei,'data-note':item.ni,class:'editor-note',cx:x,cy:y,rx:5.7,ry:3.9,transform:`rotate(-22 ${x} ${y})`,fill:(item.note.duration||item.duration)>=2?'#fffefa':'#87957a',stroke:selected?'#d49b14':'#87957a','stroke-width':selected?2:1.5}));
+      const down=pos.offset>4;svg.append(svgNode('line',{x1:x+(down?-5:5),y1:y,x2:x+(down?-5:5),y2:y+(down?27:-27),stroke:'#87957a','stroke-width':1.3}));
+      if(item.note.tiedContinuation)svg.append(svgNode('path',{d:`M${x-15} ${y+8}Q${x-7} ${y+15} ${x+1} ${y+8}`,fill:'none',stroke:'#87957a','stroke-width':1}));
     }
   }
-  const add=element('button','editor-add','＋ 添加下一个音符 / 和弦');
-  add.addEventListener('click',()=>{try{collectEditor();const onset=measure.events.length?Math.max(...measure.events.map(e=>e.onset))+1:0;measure.events.push({onset,duration:1,notes:[{midi:60,staff:1,name:'C4',duration:1,tiedContinuation:false}]});measure.duration=Math.max(measure.duration||4,onset+1);renderEditor();}catch(error){toast(error.message);}});
-  container.append(add);
+  return svg;
+}
+function adjustEditorNote(kind){
+  const selected=state.editorNote;if(!state.draft||!selected)return;
+  const measure=state.draft.measures[state.editorMeasure],event=measure.events[selected.ei];if(!event)return;
+  if(kind==='delete'){event.notes.splice(selected.ni,1);if(!event.notes.length)measure.events.splice(selected.ei,1);state.editorNote=null;renderEditor();return;}
+  const note=event.notes[selected.ni];if(!note)return;
+  if(kind==='flat'||kind==='sharp'||kind==='octaveDown'||kind==='octaveUp'){
+    const delta=kind==='sharp'?1:kind==='flat'?-1:kind==='octaveUp'?12:-12,midi=Math.max(21,Math.min(108,note.midi+delta));
+    note.midi=midi;note.name=pitchName(midi);
+  }else if(kind==='staff')note.staff=note.staff<=1?2:1;
+  renderEditor();
 }
 
 function renderDetail(){const ready=!!state.score;$('detail-title').textContent=state.current.title||state.score?.title||'乐谱详情';const status=$('detail-status');status.classList.toggle('pending',!ready||!state.current.reviewed);status.textContent=!ready?'乐谱已保存在本机。点击“手机识谱”开始离线识别，也可以手动录入音符。':state.current.reviewed?'音符已校对，可以离线练习。需要时仍可继续修改。':'识别结果需要你核对：请特别检查升降号、和弦、左右手以及延音连结。';if(state.score?.warnings?.length)status.textContent+=' '+state.score.warnings.join(' ');const visual=state.current.mime==='application/pdf'||(state.current.mime||'').startsWith('image/');$('recognize-button').classList.toggle('hidden',!visual);$('detail-practice-button').classList.toggle('hidden',!ready);$('detail').querySelector('[data-action="delete"]').classList.toggle('hidden',state.currentId==='demo');if(!visual)$('source-preview').replaceChildren(element('p','',state.currentId==='demo'?'内置原创练习，可直接查看练习五线谱':'此文件已包含结构化音符，可直接校对练习'));startEditor();}
@@ -206,6 +216,9 @@ document.addEventListener('click',event=>{
     case'cancelRecognition':$('busy-overlay').classList.add('hidden');break;case'saveSettings':saveSettings();break;
     case'saveEdit':collectEditor();if(!state.draft.measures.some(m=>m.events.some(e=>e.notes.length))){toast('请至少添加一个音符');return;}post('saveScore',{score:state.draft});break;
     case'addMeasure':collectEditor();state.draft.measures.push({number:(state.draft.measures.at(-1)?.number||0)+1,beats:4,beatType:4,duration:4,events:[]});state.editorMeasure=state.draft.measures.length-1;renderEditor();break;
+    case'pickNote':state.editorNote={ei:+button.dataset.event,ni:+button.dataset.note};renderEditor();break;
+    case'editNoteValue':adjustEditorNote(button.dataset.kind);break;
+    case'editorStep':{const next=state.editorMeasure+(+button.dataset.delta||0);if(!state.draft||next<0||next>=state.draft.measures.length)break;state.editorMeasure=next;state.editorNote=null;renderEditor();break;}
     case'delete':if(state.currentId!=='demo')post('deleteScore',{id:state.currentId});break;case'again':closeSheet();post('restart');break;case'done':closeSheet();post('finishSession');showScreen('home');break;
   }}catch(error){toast(error.message);}
 });
