@@ -19,3 +19,14 @@
 .splash-copy p{margin:0;font-size:12px;color:#52633f;letter-spacing:.12em}
 .splash-copy .button{margin-top:15px;min-height:48px}
 @media(orientation:landscape){.splash{flex-direction:row}.splash-art{flex:1;width:auto;height:100%;max-width:56%}.splash-copy{flex:1;align-self:center}}
+.score-panel{position:relative}
+.focus-toggle{position:absolute;right:10px;top:8px;z-index:4;display:inline-flex;align-items:center;min-height:32px;padding:0 13px;border:1px solid rgba(35,48,24,.12);border-radius:999px;background:rgba(255,255,255,.8);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);font-size:11px;font-weight:700;color:var(--ink)}
+#practice.focus .practice-header,#practice.focus .practice-meta,#practice.focus .progress-track,#practice.focus .feedback,#practice.focus .playback-bar,#practice.focus .practice-tools,#practice.focus .staff-legend,#practice.focus .score-heading,#practice.focus .keyboard-bar,#practice.focus .keyboard-zoom,#practice.focus .keyboard-navigation,#practice.focus .keyboard-tip{display:none}
+#practice.focus .practice-main{padding-top:2px}
+#practice.focus .score-panel{flex:1;min-height:0;padding-top:40px}
+#practice.focus .staff{flex:1;min-height:0}
+#practice.focus .staff>svg{height:100%;min-height:0;max-height:none}
+#practice.focus .piano-dock{display:flex;flex-direction:column;flex:0 0 auto}
+#practice.focus #keyboard-window{flex:0 0 auto;height:150px}
+#practice.focus .focus-toggle{background:rgba(35,48,24,.82);color:#fff;border-color:transparent}
+@media(orientation:landscape){#practice.focus #keyboard-window{height:96px}}
