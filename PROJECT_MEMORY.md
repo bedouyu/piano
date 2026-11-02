@@ -7,7 +7,8 @@
 - 项目：`D:\desktop\AI\识谱助手`，原生 Android Java + 安装包内 WebView 页面，无 Gradle，包名 `com.shipu.assistant`。
 - 版本 **0.3.0 / versionCode 5**。Git 仓库 `main` 跟踪 `origin/main`，首个提交 `270b511`。
 - 仓库只提交源码：`.gitignore` 排除 `build/`、`handoff/`、`.build/`、`.toolchain/`、`tools/mobile-omr/downloads/`、`assets/local-omr/{models,pyodide,ort,homr.zip,sources}`、`__pycache__`。这些由 `tools/mobile-omr/prepare.py` 重新生成。
-- 最新包 `build/outputs/识谱助手-0.3.0-fix5.apk`，188,036,746 字节，SHA256 `75FCD2A7F948D1C45BF8570A27A1993387FD47F7605EA8480E9CEEAB53C89E7A`，v2/v3 签名通过，ZIP 路径已规范化，mp3 未压缩。只做编译与浏览器内真实模型验证，**没有真机测试**。
+- 最新包 `build/outputs/识谱助手-0.3.0-fix6.apk`，188,036,746 字节，SHA256 `5D0193E97AF4FD0AB9BBD21D542771F9B5EF0943FA25E4466D80521EF25A9CCA`，v2/v3 签名通过，ZIP 路径已规范化，mp3 未压缩。只做编译与浏览器内真实模型验证，**没有真机测试**。
+- 上一版 fix5：188,036,746 字节，SHA256 `75FCD2A7...`（真机第 1 页失败，见下节）。
 - 上一版测试包 `识谱助手-0.3.0-测试.apk`（188,028,467 字节，SHA256 `163bb9bc...`）仍是可调试备份。
 
 
@@ -25,8 +26,17 @@
 - 已按用户确认恢复归档方案：`app/src/main/assets/local-omr/python/piano_grouping.py`（源自 `tools/mobile-omr/templates/piano_grouping.py`）在 `runner.py` 中接管 `staff_parsing._ensure_same_number_of_staffs`、`homr.main.detect_staff` 和 `staff_parsing.parse_staff_image`，用分割 mask 的等距长谱线补回漏检谱表，并按页面纵向重新整理钢琴系统。
 - 与归档版本的差异：`recognise()` 发现 part 数不等于 1 时**不再抛错**，只写入 `piano-layout-unresolved` 事件，多 part 仍交给 `MusicXmlParser` 合并，避免真实合奏谱无法导入。
 - 验证（浏览器内跑真实生产模型，输入 `build/verification/river/page-1-2200.png`、page-2）：第 1 页 **24 小节 / 6 行**、第 2 页 **27 小节 / 6 行**，各 1 个 part，`externalRequests` 为空，`service_runtime.cjs` 判定 `passed: true`。输出 `build/verification/restored-river-page-{1,2}.musicxml`。**只核对小节与谱行数量，音高、时值、谱号、升降号仍未逐音人工认证。**
-- `RecognitionService` 检查点 fingerprint 由 `3:` 改为 `4:`，旧缓存会失效，已识别乐谱重新识别时不会复用错误 XML。
+- `RecognitionService` 检查点 fingerprint 由 `3:` 改为 `4:`，旧缓存会失效，已识别乐谱重新识别时不会复用错误 XML（fix6 又升到 `5:`）。
 - 不能用“能识别出 24 小节”推断音准正确；模型本身仍会误读（例：第 1 小节左手把持续和弦展开成 4 个二分音符）。
+
+## 2026-11-02 fix6：真机第 1 页失败的修正
+
+- 真机诊断（Android 15 / WebView 131）显示：第 1 页第 1 组 10 线正常，但**第 2 组只检出 5 线**（top 768–832.5，36 个音符），其低音谱表整体漏检；恢复函数当时要求连续 5 条等距长线，而该组下方只有 4 条（897/913/929/945），因此没有补回。随后 `normalize_piano_staffs` 遇到未配对谱表**直接抛错**，整页识别失败。
+- 改动：`recover_five_line_staffs` 增加“4 条等距长线 + 外推第 5 条”的补检（`_band_near` 在该位置附近找实际墨迹，找不到才用外推值），仍然检查宽度、间距一致性与不重叠。
+- `normalize_piano_staffs` 未配对时**不再抛错**，保留该单谱表作为一个谱行并记录 `piano-layout-unpaired / kept-single`，避免整页失败；代价是该谱行的低音缺失，需要人工校对。
+- 回归测试 `tests/native/piano_grouping_test.py`（3 例）：复现真机几何可以补回伙伴谱表并合成为 6 个谱行；完整页面不会凭空造谱表；未配对时保留而不抛错。
+- 桌面真实模型重跑（`restored2-river-*`）仍为第 1 页 24 小节 / 第 2 页 27 小节，`passed: true`，零外部请求；说明放宽补检没有污染正常页面。
+- fingerprint 升到 `5:`，旧检查点全部失效。
 
 
 ## 回退与归档证据
@@ -51,7 +61,7 @@
 1. **后台识别：用户最新明确说已解决。** 保留实现，不再次重构它。先前报错或卡住属于旧反馈。
 2. **横屏看不见音符：未解决。** 用户截图中底部键盘/操作区占满可用高度，谱面被裁切。不能只测 852×393 的名义窗口，要扣除系统栏后的可用高度，如 852×300、740×280、640×240。检查音符真实绘制范围、所有裁切祖先及是否被遮挡，保留竖屏体验。
 3. **乐谱自动播放：用户反馈像未实现，未完成真机确认。** 现有 `PlaybackTimeline`、播放按钮和 SoundPool 调度并非空白功能，但可见入口、样本加载、实际声音和播放游标仍需核对。界面 mock 的播放状态不能证明真机有声。
-4. **识别丢失开头 / 多声部警告：源码已修，待真机重识别确认。** 谱表补齐恢复后，真实模型第 1 页回到 24 小节，多 part 合并也已改。但已保存的乐谱必须重新识别（fingerprint 已升到 `4:`），且识别音准本身仍有偏差（如第 1 小节左手），需要校对。不要把“小节数对了”当成识别正确。
+4. **识别丢失开头 / 多声部警告 / 真机整页失败：源码已修，待真机重识别确认。** 谱表补齐恢复后第 1 页回到 24 小节；fix6 又处理了真机“第 2 组低音谱表漏检 + 未配对即抛错”的情况。已保存的乐谱必须重新识别（fingerprint 已升到 `5:`）；单谱表兜底会缺低音，需校对。不要把“小节数对了”当成识别正确。
 
 ## 识别问题定位线索（已应用谱表补齐，音准仍待校对）
 

@@ -66,7 +66,7 @@
     "Recognition output requires human review.",
     "Training-data licensing details are preserved in licenses/HOMR-LICENSE-FAQ.md."
   ],
-  "assetBytes": 256362867,
+  "assetBytes": 256364985,
   "files": [
     {
       "path": "bootstrap.js",
@@ -360,8 +360,8 @@
     },
     {
       "path": "python/piano_grouping.py",
-      "bytes": 11454,
-      "sha256": "d590c269dd1c1ae17c35918df50e4557ef41fa119248b2c931ca739e2b423900"
+      "bytes": 13572,
+      "sha256": "230dff1037a81fa656a66ee85173d88d4494c793093c17f9e7a06d73ac06822d"
     },
     {
       "path": "python/runner.py",

@@ -102,7 +102,7 @@ public final class RecognitionService extends Service {
                 if (!source.isFile()) throw new IOException("原始乐谱已不存在，请重新导入");
                 pages = ScoreImageRenderer.pages(source, mime); if (pages < 1 || pages > 40) throw new IOException("一次支持1至40页，请将长PDF分段导入");
                 checkpoint = repository.checkpointDirectory(id); checkpoint.mkdirs();
-                String fingerprint = "4:" + source.length() + ":" + source.lastModified() + ":" + pages;
+                String fingerprint = "5:" + source.length() + ":" + source.lastModified() + ":" + pages;
                 String previous = LibraryRepository.read(new File(checkpoint, "source"), "", 1000);
                 if (!fingerprint.equals(previous)) {
                     File[] files = checkpoint.listFiles(); if (files != null) for (File file : files) if (file.isFile()) file.delete();
