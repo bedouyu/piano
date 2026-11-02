@@ -1,15 +1,15 @@
 # 识谱助手：项目记忆与接手说明
 
-更新：2026-11-02。用户最新要求是“先回退到上次版本，然后加入项目记忆文件，交给其他 agent 处理”。本轮已停止修复并完成回退。
+更新：2026-11-02（晚）。项目已纳入 Git 并推送到 `https://github.com/bedouyu/piano.git`；本轮恢复了“钢琴谱表补齐”修复并重新出包 fix5。真机仍未验证。
 
 ## 当前有效状态
 
 - 项目：`D:\desktop\AI\识谱助手`，原生 Android Java + 安装包内 WebView 页面，无 Gradle，包名 `com.shipu.assistant`。
-- 有效源码版本 **0.3.0 / versionCode 5**，对应 2026-10-30 的交付状态。保留已工作的后台识别功能。本轮 0.3.1 的横屏、播放、谱表补检尝试均已撤销。
-- 上一版实际存在的 APK：`build/outputs/识谱助手-0.3.0-测试.apk`，188,028,467 字节。SHA256：`163bb9bc4c081fe1699bff7630d7c8eb72eed899dff6b33a9b164c5fc5f06dc4`。这是允许调试的测试包，不能描述为已验证的正式发布包。
-- 普通构建脚本默认输出 `识谱助手-0.3.0.apk`，这个名称的文件当前没有现成产物；需要构建才会生成。
-- 回退仅作用于电脑项目，没有连接手机降级、安装、删除乐谱或修改手机数据。
-- 项目没有 `.git`，不能使用 `git reset` 找回历史。本次通过旧 APK 恢复资源，并精确反向应用本轮原生源码补丁，恢复生成脚本和版本号。
+- 版本 **0.3.0 / versionCode 5**。Git 仓库 `main` 跟踪 `origin/main`，首个提交 `270b511`。
+- 仓库只提交源码：`.gitignore` 排除 `build/`、`handoff/`、`.build/`、`.toolchain/`、`tools/mobile-omr/downloads/`、`assets/local-omr/{models,pyodide,ort,homr.zip,sources}`、`__pycache__`。这些由 `tools/mobile-omr/prepare.py` 重新生成。
+- 最新包 `build/outputs/识谱助手-0.3.0-fix5.apk`，188,036,746 字节，SHA256 `75FCD2A7F948D1C45BF8570A27A1993387FD47F7605EA8480E9CEEAB53C89E7A`，v2/v3 签名通过，ZIP 路径已规范化，mp3 未压缩。只做编译与浏览器内真实模型验证，**没有真机测试**。
+- 上一版测试包 `识谱助手-0.3.0-测试.apk`（188,028,467 字节，SHA256 `163bb9bc...`）仍是可调试备份。
+
 
 ## 2026-11-02 修复轮次（源码已改，真机未验证）
 
@@ -17,7 +17,17 @@
 - 按键/自动播放无声：`PianoAudio.java` 去掉主线程 `CountDownLatch`（回调跑在主 looper，会自锁），改为异步加载计数。
 - 后台识谱中断：`LocalInferenceRpc.java` 单次调用时限 180s→600s，失败时回传中文错误包；`omr-engine.js` 页超时 20 分钟；`RecognitionService.java` 增加 `describe()` 可读提示。
 - 纯钢琴谱被当成"多个乐器声部"：已核实 homr 按整页每个谱位输出 `<part>`，上谱表记作 `Voice`(midi 54)、下谱表才记作 `Piano`(midi 1)，旧逻辑因此只保留 1 个 part 并丢掉上谱表。`MusicXmlParser.java` 现识别 homr 这种 `Piano`/`Voice` 组合并合并全部 part（按小节序号对齐，跳过 `attributes`，冲突谱号重映射），警告改为"已自动合并同一页的上下谱表。"；`app.js` 双谱表按上=高音、下=低音选谱号。
-- 最新测试包 `build/outputs/识谱助手-0.3.0-fix4.apk`，188,032,563 字节，SHA256 `95BB6ABEC4FFDA1ABCD2DC844A3C109B73CF2FBB33C56FC04962094F2CC05F7E`，v2/v3 签名通过，99 条 ZIP 路径已规范化，mp3 未压缩。以上均只做编译、单元级合并验证与静态检查，**没有真机测试**；已识别过的旧乐谱需要重新识别才能补回被丢掉的上谱表。
+- 最新测试包 `build/outputs/识谱助手-0.3.0-fix4.apk`，188,032,563 字节，SHA256 `95BB6ABE...`（已被 fix5 取代）。
+
+## 2026-11-02 恢复轮次：钢琴谱表补齐（已应用，真机未验证）
+
+- 用户反馈“识别多页 PDF 后前面几行不见了”。核实结论：与页数无关，是第 1 页首个谱行只检出高音谱表，homr 的 `_ensure_same_number_of_staffs` 按整页周期裁掉了这个不合群的谱表，整行消失（`Removing the first 1 staff(s)...`）。
+- 已按用户确认恢复归档方案：`app/src/main/assets/local-omr/python/piano_grouping.py`（源自 `tools/mobile-omr/templates/piano_grouping.py`）在 `runner.py` 中接管 `staff_parsing._ensure_same_number_of_staffs`、`homr.main.detect_staff` 和 `staff_parsing.parse_staff_image`，用分割 mask 的等距长谱线补回漏检谱表，并按页面纵向重新整理钢琴系统。
+- 与归档版本的差异：`recognise()` 发现 part 数不等于 1 时**不再抛错**，只写入 `piano-layout-unresolved` 事件，多 part 仍交给 `MusicXmlParser` 合并，避免真实合奏谱无法导入。
+- 验证（浏览器内跑真实生产模型，输入 `build/verification/river/page-1-2200.png`、page-2）：第 1 页 **24 小节 / 6 行**、第 2 页 **27 小节 / 6 行**，各 1 个 part，`externalRequests` 为空，`service_runtime.cjs` 判定 `passed: true`。输出 `build/verification/restored-river-page-{1,2}.musicxml`。**只核对小节与谱行数量，音高、时值、谱号、升降号仍未逐音人工认证。**
+- `RecognitionService` 检查点 fingerprint 由 `3:` 改为 `4:`，旧缓存会失效，已识别乐谱重新识别时不会复用错误 XML。
+- 不能用“能识别出 24 小节”推断音准正确；模型本身仍会误读（例：第 1 小节左手把持续和弦展开成 4 个二分音符）。
+
 
 ## 回退与归档证据
 
@@ -41,9 +51,9 @@
 1. **后台识别：用户最新明确说已解决。** 保留实现，不再次重构它。先前报错或卡住属于旧反馈。
 2. **横屏看不见音符：未解决。** 用户截图中底部键盘/操作区占满可用高度，谱面被裁切。不能只测 852×393 的名义窗口，要扣除系统栏后的可用高度，如 852×300、740×280、640×240。检查音符真实绘制范围、所有裁切祖先及是否被遮挡，保留竖屏体验。
 3. **乐谱自动播放：用户反馈像未实现，未完成真机确认。** 现有 `PlaybackTimeline`、播放按钮和 SoundPool 调度并非空白功能，但可见入口、样本加载、实际声音和播放游标仍需核对。界面 mock 的播放状态不能证明真机有声。
-4. **识别丢失开头/顺序异常及多声部警告：未解决。** 最新截图是 `for_river`，显示“检测到多个乐器声部，当前仅导入优先选中的钢琴声部”，原图却是独奏钢琴双谱表。不能通过隐藏警告或盲目合并所有乐器声部来掩盖问题。
+4. **识别丢失开头 / 多声部警告：源码已修，待真机重识别确认。** 谱表补齐恢复后，真实模型第 1 页回到 24 小节，多 part 合并也已改。但已保存的乐谱必须重新识别（fingerprint 已升到 `4:`），且识别音准本身仍有偏差（如第 1 小节左手），需要校对。不要把“小节数对了”当成识别正确。
 
-## 识别问题定位线索（仅研究结果，未应用）
+## 识别问题定位线索（已应用谱表补齐，音准仍待校对）
 
 用户 PDF 已复制为 `references/for_river.pdf`（2 页、90,222 字节），原路径是 `D:\wechat\history\xwechat_files\wxid_bufm5e3ra7gz22_bcdd\msg\file\2026-10\for_river.pdf`。
 
@@ -52,10 +62,10 @@
 - `homr` 中五线谱是 `Staff`，合并后的钢琴上下谱表可能已是十条线的一个 `Staff`，`is_grandstaff=True`。`MultiStaff.staffs` 表示并行乐器，不等于连续的钢琴谱行。
 - 实际诊断：第一页首组只检测到高音谱表，漏掉低音五线谱；其余五组是十线 grand staff。旧 `staff_parsing._ensure_same_number_of_staffs` 的周期启发式把首组丢掉，因此从第 5 小节开始。
 - 根源应在 OMR 分组/谱表检测层处理；泛用 `MusicXmlParser` 优先选钢琴声部的逻辑不能无条件改成合并所有声部，避免破坏真实合奏谱。
-- 本轮被撤销的尝试包含 `piano_grouping.py`：根据实际分割 mask 中的五条等距长谱线补检漏掉的 Staff，再交回原音符检测；按页面纵向整理钢琴系统，遇到无法配对的谱表明确失败而非静默丢行。保留十线 Staff，不生成猜测的音高。
-- 该尝试的 21 个小测试曾通过；真实生产模型两页运行完成，输出 **24 + 27 小节，各 1 个 part**，约 137 秒、42 次本地 RPC、0 外部请求。输出及日志 `build/verification/piano-recovered-river-*` 也收入归档。**只证明恢复小节数量，音高、时值、谱号、升降号、连线及节奏没有逐音人工认证，没有合并后的全练习验证，没有真机验证。用户要求回退，不能把这当作已交付修复。**
-- 模型漏检诊断见 `build/verification/piano-layout-debug-runtime.log`；生成脚本改动和 helper 都在归档内。当前源码已不包含这些实验处理。
-- 下次更换识别算法要更新 `RecognitionService` 的缓存 fingerprint，避免复用旧错误 XML；当前基线是 `3:`。已有保存乐谱不会自动补回丢失音符，应允许用户重新识别并注意手工校对内容。
+- 本轮已撤销后又按用户确认恢复的 `piano_grouping.py`：根据实际分割 mask 中的五条等距长谱线补检漏掉的 Staff，再交回原音符检测；按页面纵向整理钢琴系统，遇到无法配对的谱表记录事件而非静默丢行。保留十线 Staff，不生成猜测的音高。
+- 原归档记录：21 个小测试通过；真实生产模型两页输出 **24 + 27 小节，各 1 个 part**，约 137 秒、42 次本地 RPC、0 外部请求。`build/verification/piano-recovered-river-*` 为归档证据，`restored-river-*` 为本次恢复后重跑证据。**只证明恢复小节数量，音高、时值、谱号、升降号、连线及节奏没有逐音人工认证，没有合并后的全练习验证，没有真机验证。**
+- 模型漏检诊断见 `build/verification/piano-layout-debug-runtime.log`。
+- 更换识别算法时要更新 `RecognitionService` 的缓存 fingerprint，避免复用旧错误 XML；当前基线已由 `3:` 改为 `4:`。已有保存乐谱不会自动补回丢失音符，fingerprint 变更后重新识别会重跑整份乐谱。
 
 ## 横屏与播放的撤销尝试（供参考）
 
