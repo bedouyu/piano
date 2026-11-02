@@ -20,7 +20,7 @@
   card.append(heading,intro,status,track,controls,errors);$('detail-status').after(card);
   const banner=node('section','recognition-banner hidden');banner.id='recognition-banner';banner.setAttribute('aria-live','polite');
   const bannerText=node('div');bannerText.append(node('strong','','正在后台识谱'),node('p'));const open=node('button','','查看');open.dataset.mobileOmrAction='openJob';banner.append(icon('note'),bannerText,open);$('home').querySelector('.page-scroll').prepend(banner);
-  const settingsContent=$('settings-sheet').querySelector('.sheet-content'),settings=node('section','mobile-omr-settings');
+  const settingsContent=$('settings').querySelector('.page-scroll'),settings=node('section','mobile-omr-settings');
   settings.append(node('h3','','手机离线识谱'),node('p','','模型随安装包提供，不上传乐谱，也不需要连接电脑。多页 PDF 按原始页码逐页识别。'),node('p','','识别期间可切换应用或锁屏，进度会显示在手机通知中。若主动强制停止应用或系统结束任务，再次识别会接着已完成的页面处理。'));
   const version=node('p','mobile-webview-status');version.id='mobile-webview-status';
   const details=node('details','mobile-omr-diagnostic-details');details.id='mobile-omr-diagnostic-details';

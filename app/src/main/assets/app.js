@@ -10,7 +10,7 @@ function icon(name){const svg=document.createElementNS(NS,'svg'),use=document.cr
 function element(tag,className,text){const node=document.createElement(tag);if(className)node.className=className;if(text!==undefined)node.textContent=text;return node;}
 function post(action,params={}){const data={action,...params};if(window.Android)window.Android.postMessage(JSON.stringify(data));else{window.dispatchEvent(new CustomEvent('native-message',{detail:data}));if(!window.__UI_TEST__)toast('当前为界面预览，请安装安卓应用使用此功能');}}
 function toast(text){$('toast').textContent=text;$('toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('visible'),4500);}
-function showScreen(name){if(name!=='practice'&&['playing','paused'].includes(state.playback.state))stopPlayback();document.querySelectorAll('.screen').forEach(n=>n.classList.toggle('active',n.id===name));state.screen=name;if(name==='history')renderHistory();if(name==='practice'){requestAnimationFrame(()=>{renderKeyboard();renderPractice();});}}
+function showScreen(name){if(name!=='practice'&&['playing','paused'].includes(state.playback.state))stopPlayback();document.querySelectorAll('.screen').forEach(n=>n.classList.toggle('active',n.id===name));state.screen=name;if(name==='settings')$('labels-setting').checked=state.labels;if(name==='practice'){requestAnimationFrame(()=>{renderKeyboard();renderPractice();});}}
 function openSheet(id){document.querySelectorAll('.sheet').forEach(n=>n.classList.add('hidden'));$(id).classList.remove('hidden');$('modal-backdrop').classList.remove('hidden');}
 function closeSheet(){document.querySelectorAll('.sheet').forEach(n=>n.classList.add('hidden'));$('modal-backdrop').classList.add('hidden');}
 function pitchName(midi){return ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'][midi%12]+(Math.floor(midi/12)-1);}
@@ -31,7 +31,6 @@ function renderLibrary(){
     container.append(row);
   }
 }
-function renderHistory(){const items=state.history;let count=0,seconds=0;for(const item of items){count+=item.correct||0;seconds+=item.seconds||0;}$('total-sessions').textContent=items.length;$('total-notes').textContent=count;$('total-minutes').textContent=seconds?Math.max(1,Math.round(seconds/60)):0;const list=$('history-list');list.replaceChildren();if(!items.length){const empty=element('div','empty-state');empty.append(icon('note'),element('p','','你的第一段练习，正在等你。'),element('p','','从一小节开始就很好。'));list.append(empty);return;}items.slice().reverse().forEach(item=>{const row=element('article','history-card'),copy=element('div');copy.append(element('strong','',item.title),element('p','',new Date(item.time).toLocaleDateString('zh-CN')+' · '+item.correct+' 个正确音符 · '+item.wrong+' 次错音'));row.append(copy,element('b','',Math.round(item.accuracy*100)+'%'));list.append(row);});}
 function setup(){
   if(!state.score){toast('请先识别或手动校对这份乐谱');showScreen('detail');return;}
   const count=state.score.measures.length;
@@ -164,7 +163,7 @@ function renderEditor(){
 }
 
 function renderDetail(){const ready=!!state.score;$('detail-title').textContent=state.current.title||state.score?.title||'乐谱详情';const status=$('detail-status');status.classList.toggle('pending',!ready||!state.current.reviewed);status.textContent=!ready?'乐谱已保存在本机。点击“手机识谱”开始离线识别，也可以手动录入音符。':state.current.reviewed?'音符已校对，可以离线练习。需要时仍可继续修改。':'识别结果需要你核对：请特别检查升降号、和弦、左右手以及延音连结。';if(state.score?.warnings?.length)status.textContent+=' '+state.score.warnings.join(' ');const visual=state.current.mime==='application/pdf'||(state.current.mime||'').startsWith('image/');$('recognize-button').classList.toggle('hidden',!visual);$('detail-practice-button').classList.toggle('hidden',!ready);$('detail').querySelector('[data-action="delete"]').classList.toggle('hidden',state.currentId==='demo');if(!visual)$('source-preview').replaceChildren(element('p','',state.currentId==='demo'?'内置原创练习，可直接查看练习五线谱':'此文件已包含结构化音符，可直接校对练习'));startEditor();}
-function showSettings(){closeSheet();$('labels-setting').checked=state.labels;openSheet('settings-sheet');}
+function showSettings(){closeSheet();showScreen('settings');}
 function saveSettings(){state.labels=$('labels-setting').checked;localStorage.setItem('keyLabels',String(state.labels));$('keyboard').dataset.width='';renderKeyboard();closeSheet();toast('偏好已保存');}
 function renderPageControls(){const pages=Math.max(1,state.pages),select=$('page-select');if(select.options.length!==pages){select.replaceChildren();for(let i=0;i<pages;i++){const option=element('option','',`第 ${i+1} 页`);option.value=i;select.append(option);}}select.value=state.page;$('page-number').textContent=`共 ${pages} 页`;$('page-controls').classList.toggle('hidden',pages<2);document.querySelector('[data-action="pagePrevious"]').disabled=state.page<=0;document.querySelector('[data-action="pageNext"]').disabled=state.page>=pages-1;}
 function requestPreview(page){page=Math.max(0,Math.min(Math.max(0,state.pages-1),Number(page)||0));state.page=page;state.previewRequest++;state.previewLoading=true;$('source-preview').replaceChildren(element('p','',`正在准备第 ${page+1} 页…`));$('source-preview').scrollTop=0;$('source-preview').scrollLeft=0;renderPageControls();post('preview',{id:state.currentId,page,requestId:state.previewRequest});}
@@ -172,7 +171,7 @@ function resetDocument(){$('detail').querySelector('.detail-scroll').scrollTop=0
 window.receive=function(envelope){
   const data=envelope.data||{};
   switch(envelope.type){
-    case'boot':{const changed=state.currentId!==data.currentId;state.library=data.library||[];state.history=data.history||[];state.currentId=data.currentId;state.current=data.current||{};state.score=data.score;state.job=data.job||state.job;if(changed)resetDocument();renderLibrary();renderHistory();if(state.screen==='detail')renderDetail();break;}
+    case'boot':{const changed=state.currentId!==data.currentId;state.library=data.library||[];state.history=data.history||[];state.currentId=data.currentId;state.current=data.current||{};state.score=data.score;state.job=data.job||state.job;if(changed)resetDocument();renderLibrary();if(state.screen==='detail')renderDetail();break;}
     case'state':receiveState(data);break;
     case'opened':resetDocument();if(data.ready&&(state.currentId==='demo'||state.current.reviewed))setup();else{showScreen('detail');renderDetail();}if(state.current.mime==='application/pdf'||(state.current.mime||'').startsWith('image/'))post('preview',{id:state.currentId,page:0,requestId:state.previewRequest});break;
     case'preview':{
@@ -214,4 +213,5 @@ $('page-select').addEventListener('change',event=>requestPreview(+event.target.v
 $('demo-start').addEventListener('click',()=>post('open',{id:'demo'}));$('start-practice').addEventListener('click',startPractice);$('modal-backdrop').addEventListener('click',closeSheet);
 window.appBack=function(){if(!$('busy-overlay').classList.contains('hidden')){$('busy-overlay').classList.add('hidden');return;}if(!$('modal-backdrop').classList.contains('hidden')){closeSheet();return;}if(state.screen==='practice'){stopPlayback();post('finishSession');}if(state.screen!=='home')showScreen('home');else post('finishApp');};
 window.addEventListener('resize',()=>{if(state.screen==='practice'){positionKeyboard();renderStaff();}});
+(function splash(){const node=$('splash');if(!node)return;let closed=false;const close=()=>{if(closed)return;closed=true;node.classList.add('gone');setTimeout(()=>node.remove(),320);};node.addEventListener('click',close);node.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' ')close();});setTimeout(close,3600);})();
 renderLibrary();renderKeyboard();post('boot');
