@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.shipu.assistant" android:versionCode="5" android:versionName="0.3.0">
+    <uses-sdk android:minSdkVersion="24" android:targetSdkVersion="35" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <application android:label="识谱助手" android:theme="@style/AppTheme" android:icon="@drawable/ic_launcher" android:allowBackup="false" android:usesCleartextTraffic="false" android:supportsRtl="true" android:largeHeap="true">
+        <service android:name=".RecognitionService" android:exported="false" android:foregroundServiceType="dataSync" android:stopWithTask="false" />
+        <activity android:name=".MainActivity" android:exported="true" android:screenOrientation="fullUser" android:configChanges="orientation|screenSize|keyboardHidden" android:launchMode="singleTop">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

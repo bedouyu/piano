@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#f6f5f0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' data:; script-src 'self' 'wasm-unsafe-eval' 'unsafe-eval'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-src 'none'">
+  <title>识谱助手</title>
+  <link rel="stylesheet" href="app.css">
+  <link rel="stylesheet" href="refinements.css">
+  <link rel="stylesheet" href="mobile-omr.css">
+</head>
+<body>
+<svg class="sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+  <symbol id="i-note" viewBox="0 0 24 24"><path d="M9 18V5l11-2v13M9 9l11-2"/><ellipse cx="5.5" cy="18" rx="3.5" ry="2.5"/><ellipse cx="16.5" cy="16" rx="3.5" ry="2.5"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h16M4 17h16"/><circle cx="8" cy="7" r="3"/><circle cx="16" cy="17" r="3"/></symbol>
+  <symbol id="i-library" viewBox="0 0 24 24"><rect x="3" y="4" width="7" height="16" rx="2"/><path d="m14 4 6 1-2 15-6-1z"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20h16M7 16v-4M12 16V7M17 16V4"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V3m-5 5 5-5 5 5M4 15v5h16v-5"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="m9 5 11 7-11 7z"/></symbol>
+  <symbol id="i-loop" viewBox="0 0 24 24"><path d="M4 10a8 8 0 0 1 13-5l3 3M20 3v5h-5M20 14A8 8 0 0 1 7 19l-3-3M4 21v-5h5"/></symbol>
+  <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M8 16a7 7 0 1 1 8 0l-1 3H9zM10 22h4M9 15h6"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M9 6V3h6v3M6 6l1 15h10l1-15M10 10v7M14 10v7"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m4 12 5 5L20 6"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="m16 3 5 5-12 12H4v-5zM13 6l5 5"/></symbol>
+  <symbol id="i-hand" viewBox="0 0 24 24"><path d="M8 12V6a2 2 0 0 1 4 0v5-7a2 2 0 0 1 4 0v8-6a2 2 0 0 1 4 0v11a5 5 0 0 1-5 5h-2a6 6 0 0 1-4-2l-5-6a2 2 0 0 1 3-3l3 3"/></symbol>
+</defs></svg>
+<main id="app">
+  <section id="home" class="screen active">
+    <header class="topbar"><div class="brand"><span class="brand-mark"><svg><use href="#i-note"/></svg></span><span>识谱助手<small>SIGHTREAD COMPANION</small></span></div><button class="icon-button" data-action="settings" aria-label="设置"><svg><use href="#i-settings"/></svg></button></header>
+    <div class="page-scroll">
+      <div class="greeting"><span class="eyebrow">一点一点，读懂音乐</span><h1>让音符，<br>落在你的指尖。</h1><p>选一份喜欢的乐谱，从第一个音开始。</p></div>
+      <article class="hero"><div class="hero-copy"><span class="tag light">从这里开始</span><h2>今天，练一小节</h2><p>不赶节奏，弹对了再往前。</p><button id="demo-start" class="button lime">开始练习 <svg><use href="#i-arrow"/></svg></button></div><div class="piano-art" aria-hidden="true"><span class="floating-note">♪</span><div class="art-keys"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div></article>
+      <div class="section-heading"><h2>我的乐谱 <span id="library-count">01</span></h2><span>本机保存</span></div>
+      <div id="library-list"></div>
+      <button class="import-card" data-action="import"><span class="import-icon"><svg><use href="#i-plus"/></svg></span><span><strong>导入你的乐谱</strong><small>图片 / PDF / MusicXML / MXL</small></span><svg class="chevron"><use href="#i-arrow"/></svg></button>
+      <div class="quiet-tip"><svg><use href="#i-hand"/></svg><p>竖屏单手，横屏更宽<br><span>键盘缩放 · 音域跟随 · 和弦依次点齐</span></p></div>
+    </div>
+    <nav class="bottom-nav"><button class="selected" data-screen="home"><svg><use href="#i-library"/></svg><span>乐谱</span></button><button data-action="continue"><svg><use href="#i-note"/></svg><span>练习</span></button><button data-screen="history"><svg><use href="#i-chart"/></svg><span>记录</span></button></nav>
+  </section>
+
+  <section id="practice" class="screen">
+    <header class="practice-header"><button class="icon-button" data-action="leavePractice" aria-label="返回乐谱"><svg><use href="#i-back"/></svg></button><div><span class="eyebrow">专注这一刻</span><h2 id="practice-title">初见 · 八小节练习</h2></div><button class="icon-button" data-action="setup" aria-label="练习设置"><svg><use href="#i-settings"/></svg></button></header>
+    <div class="practice-main"><div class="practice-meta"><span id="hand-label" class="pill">右手 · 逐音练习</span><span id="step-label">1 / 32</span></div><div class="progress-track"><div id="practice-progress"></div></div>
+      <div class="score-panel"><div class="score-heading"><span id="measure-label">第 1 小节</span><button class="text-button" data-action="source">原谱 / 校对 <svg><use href="#i-arrow"/></svg></button></div><div id="staff" class="staff" aria-label="当前小节五线谱"></div><div class="staff-legend"><span><i class="dot yellow"></i>当前位置</span><span><i class="dot muted"></i>其他音符</span><span id="key-label">4/4</span></div></div>
+      <div id="feedback" class="feedback" aria-live="polite"><div class="feedback-dot"></div><div><strong id="feedback-title">找到高亮音符的位置</strong><p id="feedback-detail">轻点下方琴键，弹对后自动继续</p></div></div>
+      <div class="playback-bar" aria-label="乐谱自动播放"><button id="playback-toggle" data-action="playbackToggle" aria-label="播放乐谱示范"><svg><use href="#i-play"/></svg><span>示范播放</span></button><button data-action="playbackStop" aria-label="停止播放"><svg><use href="#i-stop"/></svg></button><label>速度 <input id="playback-tempo" type="number" min="30" max="240" value="100" inputmode="numeric" aria-label="示范速度，每分钟拍数"> BPM</label><span id="playback-status" aria-live="polite">所选声部与小节</span></div><div class="practice-tools"><button data-action="previous"><svg><use href="#i-back"/></svg>上一个</button><button id="hint-button" data-action="hint"><svg><use href="#i-bulb"/></svg>给我提示</button><button data-action="restart"><svg><use href="#i-loop"/></svg>重来</button></div>
+    </div>
+    <div class="piano-dock"><div class="keyboard-bar"><span id="octave-label">C4 — C5</span><button id="follow-button" class="mini-toggle on" data-action="follow">音域跟随 <i></i></button><button id="wide-button" class="mini-toggle" data-action="wide" aria-label="切换琴键宽度">宽琴键</button></div><div id="keyboard-window"><div id="keyboard"></div></div><div class="keyboard-zoom"><button data-action="zoomOut" aria-label="缩小琴键，显示更多键位">－</button><label for="keyboard-zoom">更多键位</label><input id="keyboard-zoom" type="range" min="18" max="64" value="43" aria-label="琴键宽度"><span>大琴键</span><button data-action="zoomIn" aria-label="放大琴键">＋</button></div><div class="keyboard-navigation"><button class="octave-button" data-action="octaveDown" aria-label="降低一个八度"><svg><use href="#i-back"/></svg><span>低八度</span></button><input id="keyboard-range" type="range" min="0" max="44" value="23" aria-label="移动键盘音域"><button class="octave-button" data-action="octaveUp" aria-label="升高一个八度"><span>高八度</span><svg><use href="#i-arrow"/></svg></button></div><p class="keyboard-tip">滑条移动音域 · 缩小琴键可显示更多键位 · 支持横屏</p></div>
+  </section>
+
+  <section id="detail" class="screen"><header class="sub-header"><button class="icon-button" data-screen="home" aria-label="返回"><svg><use href="#i-back"/></svg></button><h2 id="detail-title">乐谱详情</h2><button class="delete-detail-button" data-action="delete" aria-label="删除乐谱"><svg><use href="#i-trash"/></svg><span>删除</span></button></header><div class="page-scroll detail-scroll"><div id="detail-status" class="notice"></div><div id="page-controls" class="page-controls hidden"><button data-action="pagePrevious">上一页</button><label class="page-picker"><select id="page-select" aria-label="选择乐谱页码"><option value="0">第 1 页</option></select><span id="page-number">共 1 页</span></label><button data-action="pageNext">下一页</button></div><div id="source-preview" class="source-preview"><p>原谱将在这里显示</p></div><div class="section-heading"><h2>校对音符</h2><span>保存后离线练习</span></div><p class="helper">选择小节，核对音高与左右手。显示的是练习用简谱面板；复杂节奏和版式请参考原谱。</p><label class="field">曲名<input id="edit-title" maxlength="100" placeholder="为乐谱起个名字"></label><div id="measure-editor" class="editor"></div><button class="button secondary full" data-action="addMeasure"><svg><use href="#i-plus"/></svg>添加一个小节</button><p class="helper">输入 C4、D♭4 或 F#4 等音名；用空格分开和弦音。上下谱表默认分别为右手、左手，可在练习前互换。</p></div><div class="detail-bottom"><button id="recognize-button" class="button secondary" data-action="localRecognize"><svg><use href="#i-note"/></svg>手机识谱</button><button class="button primary" data-action="saveEdit"><svg><use href="#i-check"/></svg>保存校对</button><button id="detail-practice-button" class="button primary hidden" data-action="setup">开始练习 <svg><use href="#i-arrow"/></svg></button></div></section>
+
+  <section id="history" class="screen"><header class="topbar"><div><span class="eyebrow">每一点进步，都算数</span><h1 class="small-title">练习记录</h1></div><button class="icon-button" data-action="settings" aria-label="设置"><svg><use href="#i-settings"/></svg></button></header><div class="page-scroll"><div class="stats-grid"><div><strong id="total-sessions">0</strong><span>次练习</span></div><div><strong id="total-notes">0</strong><span>个正确音符</span></div><div><strong id="total-minutes">0</strong><span>分钟专注</span></div></div><div id="history-list"></div></div><nav class="bottom-nav"><button data-screen="home"><svg><use href="#i-library"/></svg><span>乐谱</span></button><button data-action="continue"><svg><use href="#i-note"/></svg><span>练习</span></button><button class="selected" data-screen="history"><svg><use href="#i-chart"/></svg><span>记录</span></button></nav></section>
+</main>
+
+<div id="modal-backdrop" class="modal-backdrop hidden"></div>
+<section id="setup-sheet" class="sheet hidden" role="dialog" aria-modal="true" aria-label="开始练习"><div class="sheet-handle"></div><div class="sheet-title"><div><span class="eyebrow">按你的步调来</span><h2>这次怎么练？</h2></div><button class="icon-button" data-action="closeSheet" aria-label="关闭"><svg><use href="#i-close"/></svg></button></div><div class="sheet-content"><label class="control-label">选择声部</label><div id="hand-options" class="segmented"><button data-value="LEFT">左手</button><button class="selected" data-value="RIGHT">右手</button><button data-value="BOTH">双手</button></div><label class="control-label">练习方式</label><div id="mode-options" class="mode-options"><button class="selected" data-value="NOTE"><strong>逐音练习</strong><span>一个音一个音认</span></button><button data-value="MEASURE"><strong>小节练习</strong><span>和弦可逐键点齐</span></button></div><div class="range-fields"><label class="field">从第几小节<select id="start-measure"></select></label><span>至</span><label class="field">到第几小节<select id="end-measure"></select></label></div><label class="switch-row"><span><strong>循环练习</strong><small>最后一个音完成后，回到开头</small></span><input id="loop-setting" type="checkbox" role="switch"></label><label class="switch-row"><span><strong>互换上下谱表的手</strong><small>默认上谱表右手、下谱表左手</small></span><input id="swap-setting" type="checkbox" role="switch"></label><p class="helper">只判断音高，不限制速度。休止符和延音连结的后续音会跳过，不要求再次按键。</p></div><button id="start-practice" class="button primary full">开始练习 <svg><use href="#i-play"/></svg></button></section>
+
+<section id="settings-sheet" class="sheet hidden" role="dialog" aria-modal="true" aria-label="设置"><div class="sheet-handle"></div><div class="sheet-title"><div><span class="eyebrow">让练习更顺手</span><h2>偏好与手机识谱</h2></div><button class="icon-button" data-action="closeSheet" aria-label="关闭"><svg><use href="#i-close"/></svg></button></div><div class="sheet-content"><label class="switch-row"><span><strong>显示琴键音名</strong><small>默认只标中央 C 与八度位置</small></span><input id="labels-setting" type="checkbox" role="switch"></label><div class="about"><strong>识谱助手 0.3.0</strong><p>手机离线识谱 · 竖横屏练习</p><small>钢琴采样：Alexander Holm · Salamander Grand Piano<br>CC BY 3.0，经 Tone.js 音频库分发。音高变调播放。<br>乐谱与记录保存在本机，未集成广告或分析服务。</small></div></div><button class="button primary full" data-action="saveSettings">保存设置</button></section>
+
+<section id="complete-sheet" class="sheet hidden" role="dialog" aria-modal="true" aria-label="练习完成"><div class="sheet-handle"></div><div class="completion-mark"><svg><use href="#i-check"/></svg></div><h2 class="completion-title">又读懂了一段音乐。</h2><p class="helper centered">慢慢来，熟悉感会一点一点长出来。</p><div class="stats-grid"><div><strong id="result-accuracy">100%</strong><span>音高正确率</span></div><div><strong id="result-notes">0</strong><span>正确音符</span></div><div><strong id="result-wrong">0</strong><span>错音次数</span></div></div><button class="button primary full" data-action="again">再练一次 <svg><use href="#i-loop"/></svg></button><button class="button text full" data-action="done">回到我的乐谱</button></section>
+
+<div id="busy-overlay" class="busy-overlay hidden" role="status"><div class="spinner"></div><strong id="busy-text">正在处理…</strong><button class="button secondary" data-action="cancelRecognition">停止等待</button></div>
+<div id="toast" class="toast" role="status"></div>
+<script src="app.js"></script>
+<script src="refinements.js"></script>
+<script src="mobile-omr.js"></script>
+</body>
+</html>

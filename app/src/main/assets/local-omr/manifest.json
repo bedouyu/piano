@@ -1,0 +1,412 @@
+{
+  "format": 1,
+  "engine": "homr",
+  "homrCommit": "863eb3c6487f3c6fe50267fb71613f05162bb7c5",
+  "partsongCommit": "18b38f2602ec5a4cf6230ebee391595a4d18d9fd",
+  "offline": true,
+  "workerContract": {
+    "init": {
+      "type": "init",
+      "runId": "validated native session id",
+      "rpcBase": "same-origin /__omr_rpc__/{runId}/"
+    },
+    "recognise": {
+      "type": "recognise",
+      "id": "string or number",
+      "image": "ArrayBuffer of encoded JPEG or PNG"
+    },
+    "result": {
+      "type": "result",
+      "runId": "original session id",
+      "id": "original id",
+      "xml": "MusicXML string",
+      "ms": "milliseconds"
+    },
+    "transport": "native-rpc binary v1; separate Python and ORT workers",
+    "maxPacketBytes": 67108864,
+    "chunkBytes": 524288,
+    "cancel": "terminate both workers and cancel native RPC session"
+  },
+  "runtimeVersions": {
+    "pyodide": "314.0.7",
+    "python": "3.14.2",
+    "onnxruntime-web": "1.30.0"
+  },
+  "sources": {
+    "homr": "https://github.com/liebharc/homr/tree/863eb3c6487f3c6fe50267fb71613f05162bb7c5",
+    "bridge": "https://github.com/pzfreo/partsong/tree/18b38f2602ec5a4cf6230ebee391595a4d18d9fd",
+    "pyodide": "https://cdn.jsdelivr.net/pyodide/v314.0.7/full/",
+    "onnxruntime-web": "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.30.0/dist/",
+    "models": [
+      "https://github.com/liebharc/homr/releases/download/onnx_checkpoints/segnet_308-3296ccd40960f90ca6ab9c035cca945675d30a0f.zip",
+      "https://github.com/liebharc/homr/releases/download/onnx_checkpoints/encoder_pytorch_model_465-597144cab54c8f6d0f6c9619df5c5312694eadd6.zip",
+      "https://github.com/liebharc/homr/releases/download/onnx_checkpoints/decoder_pytorch_model_465-597144cab54c8f6d0f6c9619df5c5312694eadd6.zip"
+    ],
+    "licenses": {
+      "PYODIDE-LICENSE.txt": "https://raw.githubusercontent.com/pyodide/pyodide/main/LICENSE",
+      "ONNXRUNTIME-LICENSE.txt": "https://raw.githubusercontent.com/microsoft/onnxruntime/main/LICENSE",
+      "ONNXRUNTIME-THIRD-PARTY.txt": "https://raw.githubusercontent.com/microsoft/onnxruntime/main/ThirdPartyNotices.txt",
+      "CPYTHON-LICENSE.txt": "https://raw.githubusercontent.com/python/cpython/v3.14.2/LICENSE",
+      "HOMR-LICENSE-FAQ.md": "https://raw.githubusercontent.com/liebharc/homr/main/LICENSE_FAQ.md"
+    }
+  },
+  "modifications": [
+    "Workers use only APK-local resources; no CDN and no score upload.",
+    "Python and ORT execute in independent workers connected by app-local synchronous-XHR binary RPC.",
+    "JSPI/run_sync/callPromising were removed from the active Python bridge; SharedArrayBuffer and cross-origin isolation are not required.",
+    "ORT compatibility execution uses CPU/WASM with numThreads=1.",
+    "Tensor payloads remain binary; native bridge delivery is chunked rather than serializing tensors as numeric JSON arrays.",
+    "Piano runner retains upstream grand-staff grouping, including same-clef staves.",
+    "Choir-specific Partsong splitting and key rewriting are not applied.",
+    "Partsong JavaScript decoder acceleration and generic zero-duration-rest handling retained."
+  ],
+  "workerLoader": "APK-local classic Blob bootstrap imports the two local ES modules and reports import errors with stage and stack.",
+  "limits": [
+    "Requires classic workers with dynamic ES module import, WebAssembly SIMD, local worker XMLHttpRequest and the app native RPC bridge.",
+    "Recognition output requires human review.",
+    "Training-data licensing details are preserved in licenses/HOMR-LICENSE-FAQ.md."
+  ],
+  "assetBytes": 256362867,
+  "files": [
+    {
+      "path": "bootstrap.js",
+      "bytes": 2323,
+      "sha256": "4ecab06bb2a1917ad2a2b9f19bfe72cd094d3cd4d9dbcce8fbc94c1c6adf9335"
+    },
+    {
+      "path": "homr.zip",
+      "bytes": 104417,
+      "sha256": "fbed023bbce373d1b2dde78a001ce1970ba747604c48a184acd024df688cd376"
+    },
+    {
+      "path": "inference-worker.js",
+      "bytes": 10014,
+      "sha256": "d645f9f2618712ea150d2393b2563c35722e49523a7552da415f522d905fc890"
+    },
+    {
+      "path": "licenses/CPYTHON-LICENSE.txt",
+      "bytes": 13804,
+      "sha256": "b0e25a78cffb43f4d92de8b61ccfa1f1f98ecbc22330b54b5251e7b6ba010231"
+    },
+    {
+      "path": "licenses/HOMR-LICENSE-FAQ.md",
+      "bytes": 3270,
+      "sha256": "37648ce521786b43032ecddfd351c282f3c57da0d5bf9b373c0d54a86e25e21b"
+    },
+    {
+      "path": "licenses/HOMR-LICENSE.txt",
+      "bytes": 34309,
+      "sha256": "a6de0dc64ada3b5141517c0167b109dfc2adb3d1d8b27ff1745f337331b2a5f4"
+    },
+    {
+      "path": "licenses/numpy-numpy-2.4.6.dist-info_licenses_LICENSE.txt",
+      "bytes": 1543,
+      "sha256": "1be1df33863f97a7bc1c4d67980bd6c69c9a6fef0a5ee76e6ad6cb91e56e8491"
+    },
+    {
+      "path": "licenses/numpy-numpy-2.4.6.dist-info_licenses_numpy__core_include_numpy_libdivide_LICENSE.txt",
+      "bytes": 1018,
+      "sha256": "fbc539f47d0cf83bc61378080fb873d5c14630126cacbfe754035c3926daa5ec"
+    },
+    {
+      "path": "licenses/numpy-numpy-2.4.6.dist-info_licenses_numpy__core_src_common_pythoncapi-compat_COPYING",
+      "bytes": 690,
+      "sha256": "3f2c1ffa76383a55ae0aac01c9737cd70050dff63e1f026694fbe9d662573c98"
+    },
+    {
+      "path": "licenses/numpy-numpy-2.4.6.dist-info_licenses_numpy__core_src_highway_LICENSE",
+      "bytes": 20785,
+      "sha256": "e340270d4f64384569a91d546acb5b094d69ce47f0c015db77abb74dc6f815af"
+    },
+    {
+      "path": "licenses/numpy-numpy-2.4.6.dist-info_licenses_numpy__core_src_multiarray_dragon4_LICENSE.txt",
+      "bytes": 1414,
+      "sha256": "f7b14309e5f54e5022b26448eefd419988ada2aec01d3c1162d84a0ea8f21f2c"
+    },
+    {
+      "path": "licenses/numpy-numpy-2.4.6.dist-info_licenses_numpy__core_src_npysort_x86-simd-sort_LICENSE.md",
+      "bytes": 1514,
+      "sha256": "211e7d737d6179a08f791ebb0a99897ce7cd2457410c542876d125576edfe910"
+    },
+    {
+      "path": "licenses/numpy-numpy-2.4.6.dist-info_licenses_numpy__core_src_umath_svml_LICENSE",
+      "bytes": 1543,
+      "sha256": "c17011467b4fe6e20fbfbeda4df09e58c2bca5480a063e55735a4000a379aad9"
+    },
+    {
+      "path": "licenses/numpy-numpy-2.4.6.dist-info_licenses_numpy_fft_pocketfft_LICENSE.md",
+      "bytes": 1498,
+      "sha256": "a85ca13fdf90160b64a0698215868c13b74d835ad0a4e2ba44713b8c5058a056"
+    },
+    {
+      "path": "licenses/numpy-numpy-2.4.6.dist-info_licenses_numpy_linalg_lapack_lite_LICENSE.txt",
+      "bytes": 2266,
+      "sha256": "a14cc25e10d40a3aa705b7de2fb764a6535d8ee9b2db4e1724900585457dfd55"
+    },
+    {
+      "path": "licenses/numpy-numpy-2.4.6.dist-info_licenses_numpy_ma_LICENSE",
+      "bytes": 1593,
+      "sha256": "05f3b88351988ecfad10abe92c0c50e5875c6452d5009a0084cc291551ffcca6"
+    },
+    {
+      "path": "licenses/numpy-numpy-2.4.6.dist-info_licenses_numpy_random_LICENSE.md",
+      "bytes": 3511,
+      "sha256": "103166b62b80443afb9eb3488e052ea06be0cff566b908f199e561fde49af19f"
+    },
+    {
+      "path": "licenses/numpy-numpy-2.4.6.dist-info_licenses_numpy_random_src_distributions_LICENSE.md",
+      "bytes": 2745,
+      "sha256": "469778be8f33d54e1bcaab28c281cc472916d2d273f835e55bc487d30503face"
+    },
+    {
+      "path": "licenses/numpy-numpy-2.4.6.dist-info_licenses_numpy_random_src_mt19937_LICENSE.md",
+      "bytes": 2926,
+      "sha256": "0e111337b25494a773106695f0e799f642b8567aaacca4f116a74a8177179156"
+    },
+    {
+      "path": "licenses/numpy-numpy-2.4.6.dist-info_licenses_numpy_random_src_pcg64_LICENSE.md",
+      "bytes": 1154,
+      "sha256": "e7d4f4fb20358f314210a892ae17351e04993813646f697ec387385ca2a36918"
+    },
+    {
+      "path": "licenses/numpy-numpy-2.4.6.dist-info_licenses_numpy_random_src_philox_LICENSE.md",
+      "bytes": 1509,
+      "sha256": "6f5828a57223d4cc7f8ea505a2623e7b978b242752c1515e355f46ba2cec1800"
+    },
+    {
+      "path": "licenses/numpy-numpy-2.4.6.dist-info_licenses_numpy_random_src_sfc64_LICENSE.md",
+      "bytes": 1226,
+      "sha256": "9d4098846018319cd68e228ee6220361787f73bccbf00237a85e4fc9621b998f"
+    },
+    {
+      "path": "licenses/numpy-numpy-2.4.6.dist-info_licenses_numpy_random_src_splitmix64_LICENSE.md",
+      "bytes": 332,
+      "sha256": "268b0ca06759d31ea3ca68dd35f20e877916e927b1c2a835e4592a3c4354b1f9"
+    },
+    {
+      "path": "licenses/numpy-numpy__core_include_numpy_random_LICENSE.txt",
+      "bytes": 1018,
+      "sha256": "fbc539f47d0cf83bc61378080fb873d5c14630126cacbfe754035c3926daa5ec"
+    },
+    {
+      "path": "licenses/numpy-numpy_ma_LICENSE",
+      "bytes": 1593,
+      "sha256": "05f3b88351988ecfad10abe92c0c50e5875c6452d5009a0084cc291551ffcca6"
+    },
+    {
+      "path": "licenses/numpy-numpy_random_LICENSE.md",
+      "bytes": 3511,
+      "sha256": "103166b62b80443afb9eb3488e052ea06be0cff566b908f199e561fde49af19f"
+    },
+    {
+      "path": "licenses/ONNXRUNTIME-LICENSE.txt",
+      "bytes": 1073,
+      "sha256": "2f07c72751aed99790b8a4869cf2311df85a860b22ded05fa22803587a48922c"
+    },
+    {
+      "path": "licenses/ONNXRUNTIME-THIRD-PARTY.txt",
+      "bytes": 333694,
+      "sha256": "1624b71afb8ec44bd85fd7a8c0e84d4ac0d74de3b56aa6b04005443e1cf4a300"
+    },
+    {
+      "path": "licenses/opencv_python-cv2_data_haarcascade_license_plate_rus_16stages.xml",
+      "bytes": 47775,
+      "sha256": "4d1c44bf7a1bc4e204fa25b046ed0acffd7f713cc13fe2958b6977125c60ddea"
+    },
+    {
+      "path": "licenses/opencv_python-cv2_LICENSE-3RD-PARTY.txt",
+      "bytes": 152360,
+      "sha256": "4fc3c113d53e95da0f3c433655a67067b7310e53af31eb6d280e94cc6927a363"
+    },
+    {
+      "path": "licenses/opencv_python-cv2_LICENSE.txt",
+      "bytes": 1070,
+      "sha256": "09d719058e782ac7bc71ba21c944e1136cde2bb957c0e888121f0218d6b5f02c"
+    },
+    {
+      "path": "licenses/opencv_python-opencv_python-4.11.0.86.dist-info_LICENSE-3RD-PARTY.txt",
+      "bytes": 152360,
+      "sha256": "4fc3c113d53e95da0f3c433655a67067b7310e53af31eb6d280e94cc6927a363"
+    },
+    {
+      "path": "licenses/opencv_python-opencv_python-4.11.0.86.dist-info_LICENSE.txt",
+      "bytes": 1070,
+      "sha256": "09d719058e782ac7bc71ba21c944e1136cde2bb957c0e888121f0218d6b5f02c"
+    },
+    {
+      "path": "licenses/pillow-pillow-12.2.0.dist-info_licenses_LICENSE",
+      "bytes": 1457,
+      "sha256": "15181e7363dca9aed78b79bebebc7fde7f1814b8bd311ea3b87ae8ccadfc185b"
+    },
+    {
+      "path": "licenses/PYODIDE-LICENSE.txt",
+      "bytes": 16725,
+      "sha256": "1f256ecad192880510e84ad60474eab7589218784b9a50bc7ceee34c2b91f1d5"
+    },
+    {
+      "path": "licenses/typing_extensions-typing_extensions-4.15.0.dist-info_licenses_LICENSE",
+      "bytes": 13936,
+      "sha256": "3b2f81fe21d181c499c59a256c8e1968455d6689d269aa85373bfb6af41da3bf"
+    },
+    {
+      "path": "models/decoder_pytorch_model_465-597144cab54c8f6d0f6c9619df5c5312694eadd6.onnx",
+      "bytes": 47309835,
+      "sha256": "18801c1e3657bdea1b031db90b10d66e15accfc1d607780f09a9e059133e886a"
+    },
+    {
+      "path": "models/encoder_pytorch_model_465-597144cab54c8f6d0f6c9619df5c5312694eadd6.onnx",
+      "bytes": 52861122,
+      "sha256": "92bd18338dc8da3c9b00185008ab14719ff9f912efe785ca42d7b623e06e0c6b"
+    },
+    {
+      "path": "models/segnet_308-3296ccd40960f90ca6ab9c035cca945675d30a0f.onnx",
+      "bytes": 57311361,
+      "sha256": "6ed36640db4ef5d223098b6d5efe4eda97c66b24a2c72faab8a018c749003a8d"
+    },
+    {
+      "path": "ort/ort-wasm-simd-threaded.asyncify.mjs",
+      "bytes": 53057,
+      "sha256": "3d1c85995364bb643302fc6fd877a0c3ba5ae72401815e0f24828a53d9191e28"
+    },
+    {
+      "path": "ort/ort-wasm-simd-threaded.asyncify.wasm",
+      "bytes": 26781914,
+      "sha256": "39f9f0894d478800487ed9f7dbe92618498db320cf55c8e3d89adff8dce658da"
+    },
+    {
+      "path": "ort/ort-wasm-simd-threaded.jsep.mjs",
+      "bytes": 46851,
+      "sha256": "709853412fd1ffc34247af1e73569227b5b79629c5ca3f59cc39cf7e500e4947"
+    },
+    {
+      "path": "ort/ort-wasm-simd-threaded.jsep.wasm",
+      "bytes": 28312028,
+      "sha256": "3ad23231b5bd6d9dda55a7f84606315e0bf35b6750c28ee993c987c54cacab0f"
+    },
+    {
+      "path": "ort/ort-wasm-simd-threaded.mjs",
+      "bytes": 24381,
+      "sha256": "e13f7f94fc51b4ca72b12faeb1ee95f4ace6dfbc8939bc718aabdc0a27c4299b"
+    },
+    {
+      "path": "ort/ort-wasm-simd-threaded.wasm",
+      "bytes": 14239897,
+      "sha256": "3398c10d07d229bd91b364548e130e0e51a8e5704b88c7c083ebbeb78842dee2"
+    },
+    {
+      "path": "ort/ort.wasm.min.mjs",
+      "bytes": 50126,
+      "sha256": "219e6a1fc8a9938268d18efca3c91d310bd2f4a59bbd13744df5b2b7fc6cee3b"
+    },
+    {
+      "path": "ort/ort.webgpu.min.mjs",
+      "bytes": 66349,
+      "sha256": "3dffff71811bc13a3a3d9591c57ca5ee5735b8f5f3eaf789510b02bb040ae3a0"
+    },
+    {
+      "path": "ort/package.json",
+      "bytes": 4593,
+      "sha256": "16f69f755509990539aeb1c8445884960e91adcacab2e8dca8e44ee43601df5c"
+    },
+    {
+      "path": "pyodide/numpy-2.4.6-cp314-cp314-pyemscripten_2026_0_wasm32.whl",
+      "bytes": 2960568,
+      "sha256": "a292c1f5d7d8a2208cd5e94fc467604c131cabcd2fc14fed6eefde121e7fabdf"
+    },
+    {
+      "path": "pyodide/opencv_python-4.11.0.86-cp314-cp314-pyemscripten_2026_0_wasm32.whl",
+      "bytes": 10675764,
+      "sha256": "469a8ba6758ec4e0bce12436da977a1db3a953e320927c3f55ca6233a5d20acf"
+    },
+    {
+      "path": "pyodide/pillow-12.2.0-cp314-cp314-pyemscripten_2026_0_wasm32.whl",
+      "bytes": 1037806,
+      "sha256": "e29838b7a756e4ee0f27a9cfa9a387ee0dfa2e9dd44be2dd595130b9f9d93ac3"
+    },
+    {
+      "path": "pyodide/pyodide-lock.json",
+      "bytes": 119077,
+      "sha256": "5dc2fc119108bc148c7457dc86e7675b5c87e1cafd420b9c34c1eaef7b36c010"
+    },
+    {
+      "path": "pyodide/pyodide.asm.mjs",
+      "bytes": 1250344,
+      "sha256": "f7cdc8ece80678ceb712f8e65ebe6d3a83203a180c399865f49612a051693635"
+    },
+    {
+      "path": "pyodide/pyodide.asm.wasm",
+      "bytes": 9598218,
+      "sha256": "cc36e3cab04fdfc9a63ff13eb52eae2b911bf46c025cc7b281f394bd3de1d5e6"
+    },
+    {
+      "path": "pyodide/pyodide.mjs",
+      "bytes": 17931,
+      "sha256": "6f1d60f7bf529beb300f0f47983c921d3982363640ba20af0e38efdddbc66109"
+    },
+    {
+      "path": "pyodide/python_stdlib.zip",
+      "bytes": 2545637,
+      "sha256": "fa1957e5777068fc4f7437f96d860ae2fbe9c19732ba06c84e004ec16dd7dd7a"
+    },
+    {
+      "path": "pyodide/typing_extensions-4.15.0-py3-none-any.whl",
+      "bytes": 44613,
+      "sha256": "4fec68770a05408e668a4fa53d6bf4f0f684b9dacf820c7c5d6e97d3ad225e29"
+    },
+    {
+      "path": "python/onnxruntime.py",
+      "bytes": 3790,
+      "sha256": "08fb9d2cefa112b1054707e0a01df2d4bf5b8a9807b80bae6cf5f9e3b120bbf8"
+    },
+    {
+      "path": "python/piano_grouping.py",
+      "bytes": 11454,
+      "sha256": "d590c269dd1c1ae17c35918df50e4557ef41fa119248b2c931ca739e2b423900"
+    },
+    {
+      "path": "python/runner.py",
+      "bytes": 5980,
+      "sha256": "30909dae98dc934dcb89aa2f0c82ab50978fa131d3032c4bae721d1276eba73e"
+    },
+    {
+      "path": "README.md",
+      "bytes": 1681,
+      "sha256": "98704318a75c6e32e2c4aea51918ec65425682c13f590d947316b7f694feab4a"
+    },
+    {
+      "path": "rpc-codec.js",
+      "bytes": 4602,
+      "sha256": "5a367774f2bde18b0dd91707882594e2975c9da2fb7c992b4d5ab80692f91492"
+    },
+    {
+      "path": "sources/partsong-fetch-homr.sh",
+      "bytes": 1228,
+      "sha256": "1ed5fdba82214a6d12c2f1f500d1b1d95e1cde1911f5850eaf828c1be2a511eb"
+    },
+    {
+      "path": "sources/PARTSONG-LICENSE.txt",
+      "bytes": 34309,
+      "sha256": "a6de0dc64ada3b5141517c0167b109dfc2adb3d1d8b27ff1745f337331b2a5f4"
+    },
+    {
+      "path": "sources/partsong-onnxruntime.py",
+      "bytes": 3967,
+      "sha256": "9df29707a5b2e64331fda4517c455fbd52a26a311df72c82f01e0c09ac6b95bb"
+    },
+    {
+      "path": "sources/partsong-runner.py",
+      "bytes": 22059,
+      "sha256": "4844574e02f7d53a15a65def157e7dbdbfa5627fc9990fbce669619fa89e65bd"
+    },
+    {
+      "path": "sources/partsong-worker.js",
+      "bytes": 14497,
+      "sha256": "bb26f0d19b92ee5e2f7fb1270a173fca12d97a397fbd17e6349c4cd591b51d16"
+    },
+    {
+      "path": "worker.js",
+      "bytes": 4782,
+      "sha256": "bc3c981b0f0f98a58cd523f4560a1d4c862a842fbef82b7dd067622d5e7e30cf"
+    }
+  ]
+}
