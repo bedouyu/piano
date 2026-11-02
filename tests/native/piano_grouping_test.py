@@ -114,6 +114,25 @@ class PianoGroupingTest(unittest.TestCase):
         self.assertEqual(len(systems), 2, events)
         self.assertTrue(any(event.get('event') == 'piano-layout-unpaired' for event in events))
 
+    def test_narrow_sliver_staff_is_dropped_before_decoding(self):
+        # Merry Christmas Mr. Lawrence page 2: a barline block was reported as a
+        # 20px wide staff and a leftover fragment as 240px wide.  homr then failed
+        # in cv2.resize with "inv_scale_x > 0", aborting the whole page.
+        wide = [make_staff(lines_at(228) + lines_at(397)),
+                make_staff(lines_at(623) + lines_at(797)),
+                make_staff(lines_at(1428) + lines_at(1596)),
+                make_staff(lines_at(1828) + lines_at(2007)),
+                make_staff(lines_at(2238) + lines_at(2407))]
+        sliver = Staff([Point(x, lines_at(1030) + lines_at(1196)) for x in (1810.0, 1830.0)], 28)
+        fragment = Staff([Point(x, lines_at(1195)) for x in (110.0, 350.0)], 6)
+        events = []
+        systems = piano_grouping.normalize_piano_staffs(
+            [MultiStaff([wide[0], wide[1], sliver, fragment] + wide[2:], [])], MultiStaff, events.append)
+        self.assertEqual(len(systems), 5, events)
+        dropped = [event for event in events if event.get('event') == 'piano-layout-dropped']
+        self.assertTrue(dropped, events)
+        self.assertEqual(len(dropped[0]['staffs']), 2)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

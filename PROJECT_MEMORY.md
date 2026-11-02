@@ -60,6 +60,14 @@
 - 由此删除不再可达的文本解析路径：`parsePitch()` 整个移除，`collectEditor()` 只保留标题同步。`tests/music/editor_test.js` 重写为用例覆盖半音/八度/换谱表/删除/上限裁剪/标题回退，已通过。
 - 浏览器实测（393×852，真实 Edge 无头）：渲染 2 谱表 5 个音符，点选 A5 后 ♭ → G♯5、换谱表 → 下谱表；`renderEditor` 不再产生 `.editor-row`。**未真机验证**。
 
+## 2026-11-02 fix11：过滤退化谱表，修复 cv2.resize 崩溃
+
+- 真机导入《Merry Christmas Mr. Lawrence 精编还原》（5 页）在第 2 页失败：`piano-layout` 把一条 20px 宽的竖条（重复小节线块，left 1810 / right 1830，lines 10）当成谱表系统，另有 240px 宽的残片；homr 裁出该竖条后 `center_image_on_canvas` 里 `cv2.resize` 断言 `inv_scale_x > 0` 失败，整页中止。
+- `piano_grouping.normalize_piano_staffs` 增加宽度过滤：以系统中位宽度为基准，宽度 < `max(80px, 35% 中位宽)` 的谱表直接丢弃并记录 `piano-layout-dropped`（若全部都很窄则不过滤）。真实页面实测丢弃的是 20px 与 240px 两条，得到 5 个正常系统。
+- `runner._checked_piano_staff_image` 再加一道兜底：裁切区域宽 < 80 或高 < 20 时跳过该行（`piano-system-skipped`）而不是抛错，避免单行异常再毁掉整页。
+- 检查点 fingerprint `5:` → `6:`。
+- 桌面真实模型回归（`SHIPU_INPUT_IMAGES` 指向该 PDF 的 2200px PNG，5 页全跑）：`passed: true`，304 秒，各页 1 个 part，小节数 6 / 22 / 26 / 23 / 16，音符 96 / 277 / 476 / 752 / 224，零外部请求。**手机端仍未实测**，音准仍需校对。
+
 
 ## 回退与归档证据
 

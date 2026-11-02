@@ -245,6 +245,20 @@ def normalize_piano_staffs(rows, make_multi, log=None):
         if not all(math.isfinite(value) for value in values) or _lines(staff) not in (5, 10):
             raise ValueError("检测到不完整或不支持的谱表，请裁剪为清晰的钢琴谱后重试")
 
+    # A barline or repeat block can be detected as a "staff" only a few pixels
+    # wide.  homr then crops that sliver and cv2.resize fails with a zero scale,
+    # aborting the whole page.  Real systems span most of the page width.
+    widths = [float(staff.max_x) - float(staff.min_x) for staff in unique]
+    ordered = sorted(widths)
+    typical = ordered[len(ordered) // 2]
+    minimum_width = max(80.0, typical * 0.35)
+    narrow = [staff for staff, width in zip(unique, widths) if width < minimum_width]
+    if narrow and len(narrow) < len(unique):
+        unique = [staff for staff, width in zip(unique, widths) if width >= minimum_width]
+        _emit(log, {"event": "piano-layout-dropped", "reason": "staff too narrow",
+                    "minimumWidth": round(minimum_width, 1),
+                    "staffs": [_snapshot(staff) for staff in narrow]})
+
     grands = [staff for staff in unique if _lines(staff) == 10]
     grand_gaps = []
     for staff in grands:

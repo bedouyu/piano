@@ -75,6 +75,15 @@ staff_parsing._ensure_same_number_of_staffs = _normalize_piano_layout
 _parse_piano_staff_image = staff_parsing.parse_staff_image
 
 def _checked_piano_staff_image(debug, index, staff, *args, **kwargs):
+    width = float(staff.max_x) - float(staff.min_x)
+    height = float(staff.max_y) - float(staff.min_y)
+    if width < 80 or height < 20:
+        # A barline block can slip through as a tiny "system"; homr would crop it
+        # and cv2.resize would fail with inv_scale_x > 0, aborting the page.
+        _piano_layout_events.append({'event': 'piano-system-skipped', 'system': index,
+                                     'reason': 'crop too small',
+                                     'width': round(width, 1), 'height': round(height, 1)})
+        return []
     result = _parse_piano_staff_image(debug, index, staff, *args, **kwargs)
     _piano_layout_events.append({'event': 'piano-system-decoded', 'system': index, 'symbols': len(result), 'detectedNotes': staff.get_number_of_notes()})
     if not result and staff.get_number_of_notes() > 0:
