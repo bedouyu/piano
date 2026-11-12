@@ -114,7 +114,7 @@ class PianoGroupingTest(unittest.TestCase):
         self.assertEqual(len(systems), 2, events)
         self.assertTrue(any(event.get('event') == 'piano-layout-unpaired' for event in events))
 
-    def test_narrow_sliver_staff_is_dropped_before_decoding(self):
+    def test_narrow_fragment_is_dropped_before_decoding(self):
         # Merry Christmas Mr. Lawrence page 2: a barline block was reported as a
         # 20px wide staff and a leftover fragment as 240px wide.  homr then failed
         # in cv2.resize with "inv_scale_x > 0", aborting the whole page.
@@ -128,10 +128,36 @@ class PianoGroupingTest(unittest.TestCase):
         events = []
         systems = piano_grouping.normalize_piano_staffs(
             [MultiStaff([wide[0], wide[1], sliver, fragment] + wide[2:], [])], MultiStaff, events.append)
-        self.assertEqual(len(systems), 5, events)
+        self.assertEqual(len(systems), 6, events)
         dropped = [event for event in events if event.get('event') == 'piano-layout-dropped']
         self.assertTrue(dropped, events)
-        self.assertEqual(len(dropped[0]['staffs']), 2)
+        self.assertEqual(len(dropped[0]['staffs']), 1)
+        self.assertEqual(dropped[0]['staffs'][0]['notes'], 6)
+        widened = [event for event in events if event.get('event') == 'piano-layout-widened']
+        self.assertTrue(widened, events)
+        self.assertEqual(widened[0]['left'], 160.0)
+        self.assertEqual(widened[0]['right'], 1776.0)
+
+    def test_collapsed_line_extent_is_widened_instead_of_losing_systems(self):
+        # Merry Christmas Mr. Lawrence page 1: the first two systems were reported
+        # only 110px wide although they carry the whole row of music.  Dropping
+        # them removed bars 1-4 and shifted every later bar number.
+        staffs = [Staff([Point(x, lines_at(389) + lines_at(522)) for x in (190.0, 300.0)], 27),
+                  Staff([Point(x, lines_at(856) + lines_at(989)) for x in (110.0, 220.0)], 28),
+                  make_staff(lines_at(1323) + lines_at(1456), notes=32),
+                  make_staff(lines_at(1786) + lines_at(1919), notes=31),
+                  make_staff(lines_at(2258) + lines_at(2391), notes=38)]
+        events = []
+        systems = piano_grouping.normalize_piano_staffs([MultiStaff(staffs, [])], MultiStaff, events.append)
+        self.assertEqual(len(systems), 5, events)
+        self.assertFalse([event for event in events if event.get('event') == 'piano-layout-dropped'], events)
+        widened = [event for event in events if event.get('event') == 'piano-layout-widened']
+        self.assertTrue(widened, events)
+        self.assertEqual(len(widened[0]['staffs']), 2)
+        for system, expected_notes in zip(systems, (27, 28, 32, 31, 38)):
+            staff = system.staffs[0]
+            self.assertGreaterEqual(staff.max_x - staff.min_x, 1600)
+            self.assertEqual(len(staff.get_notes()), expected_notes, 'widening must keep the assigned notes')
 
 
 if __name__ == '__main__':

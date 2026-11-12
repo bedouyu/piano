@@ -60,6 +60,16 @@
 - 由此删除不再可达的文本解析路径：`parsePitch()` 整个移除，`collectEditor()` 只保留标题同步。`tests/music/editor_test.js` 重写为用例覆盖半音/八度/换谱表/删除/上限裁剪/标题回退，已通过。
 - 浏览器实测（393×852，真实 Edge 无头）：渲染 2 谱表 5 个音符，点选 A5 后 ♭ → G♯5、换谱表 → 下谱表；`renderEditor` 不再产生 `.editor-row`。**未真机验证**。
 
+## 2026-11-12 fix12：修复“第 9 小节往后全错”
+
+- 现象：Merry Christmas Mr. Lawrence（5 页 PDF）识别后，第 9 小节起内容与谱面不符，校对页该小节是一串同音高的降号音、下谱表空白。
+- 根因：第 1 页只有前两个谱行的**谱线水平范围塌缩**（检测到 x=110–220 / 190–300，即 110px，而其他行是 160–1830）。fix11 的“宽度不足就丢弃”把这两行整行删掉，于是第 1 页只剩 6 小节（本应 10 小节），后续所有页的小节号整体前移 4 小节 → 第 9 小节实际显示的是原谱第 13 小节。
+- 修复：改为**修复宽度**而不是丢弃。`_widen_staff()` 用该行已有的 y 列表在页面左右边距重建两个 StaffPoint（保留 angle 斜率、保留已分配音符），把 min_x/max_x 扩到全页；只有高度 < 80px 的碎片（真正的谱线残片）才丢弃。新增事件 `piano-layout-widened` / `piano-layout-dropped(reason=staff fragment)`。
+- 真实模型回归（桌面 2200px 渲染）：第 1 页 6 → **10 小节 / 96 → 161 音符**，`piano-layout-widened staffs=2 left=110 right=1830`；第 2 页仍 22 小节 277 音符，`passed: true`。
+- 新增/改写 `tests/native/piano_grouping_test.py` 两个用例（塌缩行被加宽且音符保留；右侧 20px 竖条被加宽、240px×66px 碎片被丢弃），5 个用例全通过。
+- 构建坑：本地跑单元测试会在 `app/src/main/assets/local-omr/python/` 生成 `__pycache__/*.pyc`，aapt2 会把它打进 APK（fix11 的包里就有）。打包前必须删除该目录。
+- fingerprint `6:` → `7:`。APK：`build/outputs/识谱助手-0.3.0-fix12.apk`，188,143,309 字节，SHA256 `5872BB7CA65A0028A8084EB6CCC72525AF5BA3EC28995188484A3FE4177AC4BB`，v2/v3 通过，101 条资源路径、无 `__pycache__`、15 个 MP3 未压缩。**未真机验证**。
+
 ## 2026-11-02 fix11：过滤退化谱表，修复 cv2.resize 崩溃
 
 - 真机导入《Merry Christmas Mr. Lawrence 精编还原》（5 页）在第 2 页失败：`piano-layout` 把一条 20px 宽的竖条（重复小节线块，left 1810 / right 1830，lines 10）当成谱表系统，另有 240px 宽的残片；homr 裁出该竖条后 `center_image_on_canvas` 里 `cv2.resize` 断言 `inv_scale_x > 0` 失败，整页中止。
@@ -67,6 +77,7 @@
 - `runner._checked_piano_staff_image` 再加一道兜底：裁切区域宽 < 80 或高 < 20 时跳过该行（`piano-system-skipped`）而不是抛错，避免单行异常再毁掉整页。
 - 检查点 fingerprint `5:` → `6:`。
 - 桌面真实模型回归（`SHIPU_INPUT_IMAGES` 指向该 PDF 的 2200px PNG，5 页全跑）：`passed: true`，304 秒，各页 1 个 part，小节数 6 / 22 / 26 / 23 / 16，音符 96 / 277 / 476 / 752 / 224，零外部请求。**手机端仍未实测**，音准仍需校对。
+- 事后修正：其中的“宽度不足即丢弃”误伤了真实谱行，见上方 fix12。
 
 
 ## 回退与归档证据

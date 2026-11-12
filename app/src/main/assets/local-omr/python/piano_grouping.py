@@ -54,6 +54,29 @@ def _emit(log, event):
             pass
 
 
+def _widen_staff(staff, left, right):
+    """Rebuild a collapsed line extent across the page margins, keeping notes."""
+    grid = list(getattr(staff, "grid", ()) or ())
+    if not grid:
+        return False
+    first = grid[0]
+    ys = sorted(float(y) for y in first.y)
+    angle = float(getattr(first, "angle", 0.0) or 0.0)
+    slope = math.tan(angle) * (right - left) if math.isfinite(angle) else 0.0
+    make_point = type(first)
+    try:
+        head = make_point(float(left), ys, angle)
+        tail = make_point(float(right), [y + slope for y in ys], angle)
+    except Exception:
+        return False
+    staff.grid = [head, tail]
+    staff.min_x = float(left)
+    staff.max_x = float(right)
+    staff.min_y = min(min(point.y) for point in staff.grid)
+    staff.max_y = max(max(point.y) for point in staff.grid)
+    return True
+
+
 def _pair_is_plausible(upper, lower, grand_gaps):
     if _lines(upper) != 5 or _lines(lower) != 5:
         return False
@@ -245,19 +268,35 @@ def normalize_piano_staffs(rows, make_multi, log=None):
         if not all(math.isfinite(value) for value in values) or _lines(staff) not in (5, 10):
             raise ValueError("检测到不完整或不支持的谱表，请裁剪为清晰的钢琴谱后重试")
 
-    # A barline or repeat block can be detected as a "staff" only a few pixels
-    # wide.  homr then crops that sliver and cv2.resize fails with a zero scale,
-    # aborting the whole page.  Real systems span most of the page width.
+    # A system whose detected line extent collapsed to a narrow strip still holds
+    # real music: its notes were assigned and its height matches a full system.
+    # Extend it to the page margins instead of dropping four bars.  Only short
+    # fragments are dropped; homr would crop those to a zero-width image.
     widths = [float(staff.max_x) - float(staff.min_x) for staff in unique]
-    ordered = sorted(widths)
-    typical = ordered[len(ordered) // 2]
-    minimum_width = max(80.0, typical * 0.35)
-    narrow = [staff for staff, width in zip(unique, widths) if width < minimum_width]
-    if narrow and len(narrow) < len(unique):
-        unique = [staff for staff, width in zip(unique, widths) if width >= minimum_width]
-        _emit(log, {"event": "piano-layout-dropped", "reason": "staff too narrow",
-                    "minimumWidth": round(minimum_width, 1),
-                    "staffs": [_snapshot(staff) for staff in narrow]})
+    widest = max(widths)
+    if widest > 0:
+        wide = [staff for staff, width in zip(unique, widths) if width >= widest * 0.5]
+        left = min(float(staff.min_x) for staff in wide)
+        right = max(float(staff.max_x) for staff in wide)
+        minimum_width = max(80.0, (right - left) * 0.4)
+        kept, repaired, dropped = [], [], []
+        for staff, width in zip(unique, widths):
+            height = float(staff.max_y) - float(staff.min_y)
+            if width >= minimum_width:
+                kept.append(staff)
+            elif height >= 80 and right > left and _widen_staff(staff, left, right):
+                kept.append(staff)
+                repaired.append(staff)
+            else:
+                dropped.append(staff)
+        if dropped and len(dropped) < len(unique):
+            unique = kept
+            _emit(log, {"event": "piano-layout-dropped", "reason": "staff fragment",
+                        "staffs": [_snapshot(staff) for staff in dropped]})
+        if repaired:
+            _emit(log, {"event": "piano-layout-widened", "left": round(left, 1),
+                        "right": round(right, 1),
+                        "staffs": [_snapshot(staff) for staff in repaired]})
 
     grands = [staff for staff in unique if _lines(staff) == 10]
     grand_gaps = []
