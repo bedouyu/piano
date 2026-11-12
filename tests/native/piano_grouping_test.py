@@ -50,6 +50,14 @@ class MultiStaff:
         self.staffs = staffs
 
 
+class SlantedPoint(Point):
+    """homr StaffPoint carries an angle; a collapsed sliver carries a noisy one."""
+
+    def __init__(self, x, y, angle=0.0):
+        super().__init__(x, y, angle)
+        self.angle = angle
+
+
 def make_staff(lines, notes=10):
     grid = [Point(float(x), lines) for x in range(160, 1781, 101)]
     return Staff(grid, notes)
@@ -137,6 +145,27 @@ class PianoGroupingTest(unittest.TestCase):
         self.assertTrue(widened, events)
         self.assertEqual(widened[0]['left'], 160.0)
         self.assertEqual(widened[0]['right'], 1776.0)
+
+    def test_widening_never_stretches_a_staff_vertically(self):
+        # Phone run 2026-11-12: the 20px sliver carried a noisy angle, and
+        # extrapolating it across the page grew the staff to bottom=6585,
+        # which made cv2.resize fail again on page 2.
+        wide = [make_staff(lines_at(228) + lines_at(397)),
+                make_staff(lines_at(623) + lines_at(797)),
+                make_staff(lines_at(1428) + lines_at(1596)),
+                make_staff(lines_at(1828) + lines_at(2007)),
+                make_staff(lines_at(2238) + lines_at(2407))]
+        ys = lines_at(1030) + lines_at(1196)
+        slanted = Staff([SlantedPoint(1810.0, ys, 1.4), SlantedPoint(1830.0, ys, 1.4)], 28)
+        events = []
+        systems = piano_grouping.normalize_piano_staffs(
+            [MultiStaff([wide[0], wide[1], slanted] + wide[2:], [])], MultiStaff, events.append)
+        self.assertEqual(len(systems), 6, events)
+        for system in systems:
+            staff = system.staffs[0]
+            height = staff.max_y - staff.min_y
+            self.assertLess(height, 400, 'staff must keep its original vertical span')
+            self.assertGreaterEqual(staff.max_x - staff.min_x, 1600)
 
     def test_collapsed_line_extent_is_widened_instead_of_losing_systems(self):
         # Merry Christmas Mr. Lawrence page 1: the first two systems were reported

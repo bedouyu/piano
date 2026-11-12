@@ -64,11 +64,18 @@
 
 - 现象：Merry Christmas Mr. Lawrence（5 页 PDF）识别后，第 9 小节起内容与谱面不符，校对页该小节是一串同音高的降号音、下谱表空白。
 - 根因：第 1 页只有前两个谱行的**谱线水平范围塌缩**（检测到 x=110–220 / 190–300，即 110px，而其他行是 160–1830）。fix11 的“宽度不足就丢弃”把这两行整行删掉，于是第 1 页只剩 6 小节（本应 10 小节），后续所有页的小节号整体前移 4 小节 → 第 9 小节实际显示的是原谱第 13 小节。
-- 修复：改为**修复宽度**而不是丢弃。`_widen_staff()` 用该行已有的 y 列表在页面左右边距重建两个 StaffPoint（保留 angle 斜率、保留已分配音符），把 min_x/max_x 扩到全页；只有高度 < 80px 的碎片（真正的谱线残片）才丢弃。新增事件 `piano-layout-widened` / `piano-layout-dropped(reason=staff fragment)`。
+- 修复：改为**修复宽度**而不是丢弃。`_widen_staff()` 用该行已有的 y 列表在页面左右边距重建两个 StaffPoint（保留已分配音符），把 min_x/max_x 扩到全页；只有高度 < 80px 的碎片（真正的谱线残片）才丢弃。新增事件 `piano-layout-widened` / `piano-layout-dropped(reason=staff fragment)`。
 - 真实模型回归（桌面 2200px 渲染）：第 1 页 6 → **10 小节 / 96 → 161 音符**，`piano-layout-widened staffs=2 left=110 right=1830`；第 2 页仍 22 小节 277 音符，`passed: true`。
 - 新增/改写 `tests/native/piano_grouping_test.py` 两个用例（塌缩行被加宽且音符保留；右侧 20px 竖条被加宽、240px×66px 碎片被丢弃），5 个用例全通过。
 - 构建坑：本地跑单元测试会在 `app/src/main/assets/local-omr/python/` 生成 `__pycache__/*.pyc`，aapt2 会把它打进 APK（fix11 的包里就有）。打包前必须删除该目录。
 - fingerprint `6:` → `7:`。APK：`build/outputs/识谱助手-0.3.0-fix12.apk`，188,143,309 字节，SHA256 `5872BB7CA65A0028A8084EB6CCC72525AF5BA3EC28995188484A3FE4177AC4BB`，v2/v3 通过，101 条资源路径、无 `__pycache__`、15 个 MP3 未压缩。**未真机验证**。
+
+## 2026-11-12 fix13：加宽谱表时不再按斜率外推
+
+- fix12 在真机上又崩在同一处 `cv2.resize`：诊断里 `piano-layout-widened` 的那条谱表变成 `top 1030.5 / bottom 6585.74`。原因是 `_widen_staff` 用原谱表点的 `angle` 把 y 沿 1720px 的水平距离外推，而塌缩成的 20px 竖条角度完全不可信，纵向被拉成 5000 多像素，裁切区域失效。
+- 改为**不做斜率外推**：加宽后两个点都用原 y 列表、`angle=0`，纵向范围与原谱表完全一致；`min_y/max_y` 由重建后的点重算。
+- 新增用例 `test_widening_never_stretches_a_staff_vertically`（20px 竖条 + 1.4rad 噪声角度，断言 6 个系统、每个谱表高度 < 400px 且宽度 ≥ 1600px），6 个用例全通过。
+- fingerprint `7:` → `8:`。APK：`build/outputs/识谱助手-0.3.0-fix13.apk`，188,143,309 字节，SHA256 `4AAD64EA06D96C7975550B44117BB541F3A13DED5E39C7DEDD35C92D683FCF76`，v2/v3 通过，101 条路径、无 `__pycache__`、15 个 MP3 未压缩。**未真机验证**——真机那次检测出的 20px 竖条在桌面渲染里没有复现，只能用构造用例覆盖。
 
 ## 2026-11-02 fix11：过滤退化谱表，修复 cv2.resize 崩溃
 

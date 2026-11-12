@@ -61,12 +61,15 @@ def _widen_staff(staff, left, right):
         return False
     first = grid[0]
     ys = sorted(float(y) for y in first.y)
-    angle = float(getattr(first, "angle", 0.0) or 0.0)
-    slope = math.tan(angle) * (right - left) if math.isfinite(angle) else 0.0
+    if not ys:
+        return False
+    # Do not extrapolate the detected slant: when the line extent collapsed to a
+    # few pixels the angle is meaningless, and extrapolating it over the page
+    # width made the staff span thousands of rows (cv2.resize then failed).
     make_point = type(first)
     try:
-        head = make_point(float(left), ys, angle)
-        tail = make_point(float(right), [y + slope for y in ys], angle)
+        head = make_point(float(left), ys, 0.0)
+        tail = make_point(float(right), list(ys), 0.0)
     except Exception:
         return False
     staff.grid = [head, tail]
